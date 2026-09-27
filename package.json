@@ -1,0 +1,19 @@
+{
+  "name": "dinner-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "今晚吃什么 · 家庭晚餐膳食管家（离线单页应用，打包为 Android APK）",
+  "scripts": {
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "apk": "cap sync android && cd android && gradlew.bat assembleDebug",
+    "apk:sh": "cap sync android && cd android && chmod +x gradlew && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

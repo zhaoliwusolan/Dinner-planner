@@ -1,0 +1,14 @@
+{
+  "appId": "com.family.dinnerplanner",
+  "appName": "今晚吃什么",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

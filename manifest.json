@@ -1,0 +1,15 @@
+{
+  "name": "今晚吃什么 · 家庭晚餐膳食管家",
+  "short_name": "今晚吃什么",
+  "description": "一家四口的晚餐膳食管家：今晚/本周菜单、聚会套餐、喜爱菜品库、下酒菜品库，全部离线可用。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7F0",
+  "theme_color": "#C9552E",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

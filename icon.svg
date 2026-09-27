@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#E08A3C"/>
+      <stop offset="100%" stop-color="#C9552E"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- 盘子 -->
+  <ellipse cx="256" cy="286" rx="168" ry="96" fill="#FFFDF9" opacity=".95"/>
+  <ellipse cx="256" cy="286" rx="168" ry="96" fill="none" stroke="#F2E3CE" stroke-width="6"/>
+  <ellipse cx="256" cy="282" rx="132" ry="72" fill="#F7F1E6"/>
+  <!-- 菜：一荤一素 -->
+  <ellipse cx="206" cy="278" rx="52" ry="34" fill="#EFC98F"/>
+  <ellipse cx="206" cy="272" rx="34" ry="20" fill="#F7DFB4" opacity=".85"/>
+  <path d="M258 262 C286 236 344 244 356 282 C322 300 282 296 258 262 Z" fill="#7FB86A"/>
+  <path d="M268 268 C296 252 336 258 344 280" fill="none" stroke="#4F8A48" stroke-width="6" opacity=".7"/>
+  <circle cx="318" cy="252" r="10" fill="#5FA84E"/>
+  <!-- 筷子 -->
+  <rect x="150" y="96" width="16" height="188" rx="8" fill="#EFD9A8" transform="rotate(14 158 190)"/>
+  <rect x="184" y="92" width="16" height="190" rx="8" fill="#F4E3C0" transform="rotate(20 192 187)"/>
+  <!-- 蒸汽 -->
+  <path d="M226 176 q-16 -26 4 -44" stroke="#FFFDF9" stroke-width="10" fill="none" opacity=".75" stroke-linecap="round"/>
+  <path d="M272 166 q-16 -26 4 -44" stroke="#FFFDF9" stroke-width="10" fill="none" opacity=".6" stroke-linecap="round"/>
+  <path d="M316 176 q-16 -26 4 -44" stroke="#FFFDF9" stroke-width="10" fill="none" opacity=".45" stroke-linecap="round"/>
+</svg>

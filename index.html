@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>今晚吃什么 · 家庭晚餐膳食管家</title>
+<!-- 可安装 / 离线（PWA）：优先使用同目录的 manifest.json 与 icon.svg；
+     若只保留 index.html 一个文件，下面的脚本会自动回退为内联版本，仍可正常使用 -->
+<link rel="manifest" href="./manifest.json">
+<link id="appIcon" rel="icon" type="image/svg+xml" href="./icon.svg">
+<link id="appIcon2" rel="apple-touch-icon" href="./icon.svg">
+<meta name="theme-color" content="#C9552E">
+<meta name="description" content="一家四口的晚餐膳食管家：今晚/本周菜单、聚会套餐、喜爱菜品库、下酒菜品库，全部离线可用。">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="今晚吃什么">
+<style>
+:root{
+  --bg:#FBF7F0; --card:#FFFFFF; --ink:#2C2620; --ink2:#6B6156; --ink3:#9C9186;
+  --brand:#C9552E; --brand2:#E08A3C; --green:#4F8A48; --line:#EDE4D6;
+  --shadow:0 6px 24px rgba(80,60,30,.09); --shadow2:0 12px 40px rgba(80,60,30,.16);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:
+    radial-gradient(1200px 600px at 12% -8%, #FDEEDC 0%, rgba(253,238,220,0) 60%),
+    radial-gradient(900px 500px at 92% 4%, #EAF3E4 0%, rgba(234,243,228,0) 55%),
+    var(--bg);
+  color:var(--ink); line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+.brand h1{margin:0;font-size:26px;letter-spacing:.5px}
+.brand h1 span{color:var(--brand)}
+.brand p{margin:6px 0 0;color:var(--ink2);font-size:13.5px}
+.seasonbadge{
+  display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:8px 15px;font-size:13px;box-shadow:var(--shadow);white-space:nowrap
+}
+.seasonbadge b{color:var(--brand)}
+.seasonbadge i{font-style:normal;font-size:16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px 18px 20px;margin-bottom:22px}
+.panel h2{margin:0 0 4px;font-size:16px}
+.panel .hint{margin:0 0 14px;color:var(--ink3);font-size:12.5px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font-family:inherit;font-size:13.5px;border-radius:11px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;cursor:pointer;transition:.18s;box-shadow:0 2px 8px rgba(80,60,30,.05)}
+button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(80,60,30,.12);border-color:#DCCBB4}
+button.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:transparent;color:#fff;font-weight:600}
+button.ghost{background:transparent;box-shadow:none}
+.tabs{display:flex;gap:6px;background:#F3EDE3;border-radius:12px;padding:4px;flex-wrap:wrap}
+.tabs button{border:none;background:transparent;box-shadow:none;padding:8px 14px;border-radius:9px;color:var(--ink2);font-weight:500}
+.tabs button.on{background:#fff;color:var(--brand);box-shadow:0 2px 8px rgba(80,60,30,.1);font-weight:600}
+.meals{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.meal{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.meal.today{border-color:#E9C9A8;box-shadow:var(--shadow2)}
+.mealhead{padding:14px 16px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:linear-gradient(180deg,#FFFDFA,#FDF8F1)}
+.mealhead h3{margin:0;font-size:15.5px;display:flex;align-items:center;gap:8px}
+.tag{font-size:11px;padding:3px 9px;border-radius:999px;background:#F6EFE4;color:var(--ink2);font-weight:500;white-space:nowrap}
+.tag.today{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.tag.green{background:#EAF3E4;color:var(--green)}
+.mealhead .meta{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.mealbody{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1}
+.dish{position:relative;display:flex;gap:12px;align-items:center;width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:8px;background:#FFFDFA;cursor:pointer;transition:.18s;text-align:left}
+.dish:hover{border-color:#E2C9A6;background:#fff;transform:translateY(-1px);box-shadow:0 8px 20px rgba(80,60,30,.1)}
+.dish:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.dishact{flex:0 0 auto;display:flex;align-items:center;padding-right:2px}
+button.replace{font-size:11.5px;padding:6px 10px;border-radius:9px;background:#F7F2E9;border:1px solid var(--line);color:var(--ink2);white-space:nowrap;box-shadow:none}
+button.replace:hover{background:#fff;border-color:#D9BE97;color:var(--brand);transform:none}
+button.fav{font-size:14px;line-height:1;padding:6px 9px;border-radius:9px;background:#F7F2E9;border:1px solid var(--line);color:var(--ink3);box-shadow:none}
+button.fav:hover{background:#fff;border-color:#D9BE97;color:var(--brand);transform:none}
+button.fav.on{color:#E0A22C;background:#FDF6E7;border-color:#EFD9A8}
+button.fav.del{font-size:12px;color:var(--ink3)}
+button.fav.del:hover{color:#C0392B;border-color:#E8B4AC;background:#FDF1EF}
+.txt{font-family:inherit;font-size:13px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);min-width:150px}
+.txt:focus{outline:none;border-color:#D9BE97;box-shadow:0 0 0 3px rgba(217,190,151,.18)}
+.wines{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.wine-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:8px;background:#FFFDFA}
+.wine-item .wi-t{min-width:0;flex:1}
+.wine-item .nm{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wine-item .sub{font-size:11px;color:var(--ink3)}
+.winepic{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.winepic .wd{display:flex;gap:9px;align-items:center;border:1px solid #EFD9A8;background:#FFFBF1;border-radius:12px;padding:7px 11px 7px 7px}
+.winepic .thumb{width:64px;height:48px;flex:0 0 64px}
+.addwine{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.thumb{width:92px;height:66px;border-radius:11px;overflow:hidden;flex:0 0 92px;background:#F4EDE2;position:relative}
+.thumb svg{display:block;width:100%;height:100%}
+.dishinfo{min-width:0;flex:1}
+.dishinfo .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dishinfo .sub{font-size:11.5px;color:var(--ink3);margin-top:2px;display:flex;gap:7px;flex-wrap:wrap}
+.pill{font-size:10.5px;padding:1.5px 7px;border-radius:999px;background:#F4EEE4;color:var(--ink2)}
+.pill.meat{background:#FBE9E1;color:#B4491F}
+.pill.veg{background:#EAF3E4;color:#3F7239}
+.pill.mix{background:#FBF1DC;color:#9A6A16}
+.pill.soup{background:#E7F0F4;color:#2F6379}
+.pill.offpill{background:#EDE7DD;color:#8A7F72}
+.pill.winepill{background:#F3E8DA;color:#A8672B}
+.dish.off{opacity:.62}
+.dish.off .thumb{filter:grayscale(.55)}
+/* 聚会套餐 */
+.pkgbar{display:flex;gap:7px;background:#F3EDE3;border-radius:12px;padding:5px;flex-wrap:wrap;margin-bottom:16px}
+.pkgbar button{border:none;background:transparent;box-shadow:none;padding:9px 15px;border-radius:9px;color:var(--ink2);font-weight:500}
+.pkgbar button.on{background:#fff;color:var(--brand);box-shadow:0 2px 8px rgba(80,60,30,.1);font-weight:600}
+.pkgcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:16px}
+.pkgcard{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:.18s;display:flex;flex-direction:column}
+.pkgcard:hover{transform:translateY(-2px);box-shadow:var(--shadow2);border-color:#E0C8A4}
+.pkgcard.on{border-color:#E2A76F;box-shadow:0 10px 32px rgba(160,90,30,.18)}
+.pkgcard.expand{grid-column:1/-1}
+.pkghd{padding:12px 14px;background:linear-gradient(135deg,#FFF6E9,#FBEADA);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pkghd b{font-size:16px}
+.pkghd small{color:var(--ink3);font-size:11.5px}
+.pkgrow{display:flex;gap:7px;padding:11px 11px 4px;flex-wrap:wrap}
+.pkgthumb{width:60px;height:46px;border-radius:9px;overflow:hidden;background:#F4EDE2;flex:0 0 auto;border:1px solid var(--line)}
+.pkgthumb svg{display:block;width:100%;height:100%}
+.pkgthumb.more{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink2);font-weight:600}
+.pkgnut{padding:10px 14px 13px;margin-top:auto;font-size:11.5px;color:var(--ink2);display:flex;gap:12px;flex-wrap:wrap;border-top:1px dashed var(--line)}
+.pkgnut b{color:var(--ink)}
+.mealnut{padding:10px 14px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--ink2);display:flex;gap:14px;flex-wrap:wrap;background:#FFFCF7}
+.mealnut b{color:var(--ink);font-weight:600}
+.grid2{display:grid;grid-template-columns:1.35fr .95fr;gap:18px;align-items:start}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 9px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--ink3);font-weight:500;font-size:11.5px;text-transform:none}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.bar{height:7px;border-radius:99px;background:#F1E9DC;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--green),#8DBE72)}
+.bar.o i{background:linear-gradient(90deg,var(--brand2),#F0BE72)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.rule{border:1px solid var(--line);border-radius:13px;padding:11px 13px;background:#FFFDF9}
+.rule .rt{font-size:12.5px;font-weight:600;margin-bottom:4px;display:flex;gap:7px;align-items:center}
+.rule .rd{font-size:11.5px;color:var(--ink2);line-height:1.55}
+.rule .ok{color:var(--green);font-weight:700}
+.holiday{margin-top:14px;padding:12px 14px;border-radius:13px;background:linear-gradient(135deg,#FFF6E9,#FDF0E4);border:1px solid #F0DEC4;font-size:12.5px;color:var(--ink2)}
+.holiday b{color:var(--brand)}
+/* modal */
+.mask{position:fixed;inset:0;background:rgba(40,30,20,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.mask.on{display:flex}
+.modal{background:#fff;border-radius:20px;max-width:660px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:pop .22s ease}
+@keyframes pop{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.modal .hero{height:190px;background:#F4EDE2;position:relative}
+.modal .hero svg{display:block;width:100%;height:100%}
+.modal .close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);border:none;cursor:pointer;font-size:17px;line-height:1;color:#5A5046;box-shadow:0 4px 14px rgba(0,0,0,.16)}
+.modal .body{padding:20px 22px 26px}
+.modal h3{margin:0 0 6px;font-size:20px}
+.modal .sub{color:var(--ink3);font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.sec{margin-top:18px}
+.sec h4{margin:0 0 8px;font-size:13.5px;color:var(--brand);display:flex;align-items:center;gap:7px}
+.sec h4::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--brand),var(--brand2))}
+ol.steps{margin:0;padding-left:0;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding:7px 0 7px 34px;font-size:13px;color:#463D33;border-bottom:1px dashed #F2EADE}
+ol.steps li:last-child{border-bottom:none}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:22px;height:22px;border-radius:50%;background:#F6EFE4;color:var(--brand);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ing{display:flex;flex-wrap:wrap;gap:7px}
+.ing span{font-size:12px;background:#F7F2E9;border:1px solid var(--line);border-radius:9px;padding:4px 10px;color:var(--ink2)}
+.tip{margin-top:16px;padding:12px 14px;border-radius:12px;background:#F3F8EF;border:1px solid #DCEAD3;font-size:12.5px;color:#3E5B36}
+.nutri{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.nutri div{background:#FBF7F0;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.nutri b{display:block;font-size:16px;color:var(--brand)}
+.nutri small{font-size:10.5px;color:var(--ink3)}
+footer.foot{margin-top:30px;text-align:center;color:var(--ink3);font-size:11.5px;line-height:1.9}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#2C2620;color:#fff;padding:10px 18px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:60}
+.toast.on{opacity:1;transform:translateX(-50%)}
+#toast[onclick]{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+@media print{
+  body{background:#fff}
+  .controls,.tabs,footer.foot,.seasonbadge{display:none!important}
+  .panel{box-shadow:none;border-color:#ddd;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>今晚吃什么 <span>· 家庭晚餐膳食管家</span></h1>
+      <p>一家四口 · 只安排晚餐 · 一荤 + 一素 + 半荤半素（或三菜一汤），当季时令、营养均衡</p>
+    </div>
+    <div id="seasonBadge" class="seasonbadge"></div>
+  </header>
+
+  <section class="panel">
+    <h2>今日晚餐安排</h2>
+    <p class="hint" id="todayHint"></p>
+    <div class="controls">
+      <button class="primary" id="btnGenToday">重新安排今晚</button>
+      <button id="btnGenWeek">生成本周菜单</button>
+      <div class="tabs" id="tabs">
+        <button data-t="today" class="on">今晚</button>
+        <button data-t="week">本周</button>
+        <button data-t="party">聚会套餐</button>
+        <button data-t="fav">喜爱菜品</button>
+        <button data-t="wine">下酒菜</button>
+        <button data-t="rules">搭配规则</button>
+        <button data-t="lib">菜品库</button>
+      </div>
+      <button class="ghost" id="btnParty">🎉 聚会套餐</button>
+      <button class="ghost" id="btnFav">❤ 喜爱菜品</button>
+      <button class="ghost" id="btnWine">🍶 下酒菜</button>
+    </div>
+  </section>
+
+  <div id="viewToday">
+    <div class="meals" id="tonight"></div>
+  </div>
+
+  <div id="viewWeek" style="display:none">
+    <section class="panel">
+      <h2>本周晚餐计划</h2>
+      <p class="hint">7 天菜品不重复；荤菜以鱼虾、鸡、牛为主，羊肉按季节安排，猪肉间或出现（每周不超过 2 次）。</p>
+      <div class="meals" id="weekMeals"></div>
+    </section>
+  </div>
+
+  <div id="viewParty" style="display:none">
+    <section class="panel">
+      <h2>节假日家庭聚会套餐</h2>
+      <p class="hint">四个档位任选：六菜一汤 / 七菜一汤 / 八菜一汤 / 九菜一汤。每档固定「1 道素菜 + 1 道半荤半素」，其余以荤菜为主；<b>同一桌荤菜类别不重复</b>（鱼、虾、鸡、牛、羊、猪 各至多 1 道），素菜为当季时令。若当季可用荤菜类别不足（如春夏无羊肉，仅 5 类），余下位置用当季素菜补足，绝不以重复荤菜凑数。</p>
+      <div class="pkgbar" id="partyTabs"></div>
+      <div id="partyDetail"></div>
+    </section>
+  </div>
+
+  <div id="viewFav" style="display:none">
+    <section class="panel">
+      <h2>家庭喜爱菜品库</h2>
+      <p class="hint">在「菜品库」「今晚」「本周」「聚会套餐」「下酒菜」里，点菜品右侧的 ☆ 即可加入喜爱库；在喜爱库或原处再点一次 ★ / ✕ 即移出。收藏会保存在本机浏览器里。</p>
+      <div class="meals" id="favGrid"></div>
+    </section>
+  </div>
+
+  <div id="viewWine" style="display:none">
+    <section class="panel">
+      <h2>下酒菜品库</h2>
+      <p class="hint">已预设经典下酒菜，点 ☆ 可收藏、点 ✕ 可删除（预设菜品不可删）。可从<b>菜品库选择</b>任意菜品加进来，也可自己填菜名添加。</p>
+      <div class="controls" style="margin-bottom:14px">
+        <button class="primary" id="btnPickDish">🍽 从菜品库选择</button>
+        <input id="wineName" class="txt" placeholder="或直接输入菜名，例如：酱牛肉" maxlength="20">
+        <input id="wineIng" class="txt" placeholder="主要食材（可选）" maxlength="40">
+        <button class="primary" id="btnAddWine">＋ 添加下酒菜</button>
+      </div>
+      <div class="meals" id="wineGrid"></div>
+    </section>
+  </div>
+
+  <div id="viewRules" style="display:none">
+    <section class="panel">
+      <h2>本餐搭配自检</h2>
+      <p class="hint">每生成一餐，《膳食管家》都会逐条核对你提出的 7 项要求。</p>
+      <div class="rules" id="ruleChecks"></div>
+      <div class="holiday" id="seasonalNote"></div>
+    </section>
+  </div>
+
+  <div id="viewLib" style="display:none">
+    <section class="panel">
+      <h2>菜品库</h2>
+      <p class="hint">点任意菜品可查看图片与经典做法；点 ☆ 加入家庭喜爱库。预设菜品不可删除，自己添加的菜品可点 ✕ 删除。<b>自建菜品点「🔍 在线查做法」可查经典做法并保存到本机。</b></p>
+      <div id="dishPasteRow" class="addwine" style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">🔍 在线查做法（结果保存在本机浏览器）</div>
+        <div class="controls" style="margin-bottom:8px">
+          <input id="dishName" class="txt" placeholder="① 输入菜名，例如：番茄炒蛋" maxlength="20">
+          <select id="dishCat" class="txt" style="min-width:118px">
+            <option value="meat">荤菜</option>
+            <option value="veg">素菜</option>
+            <option value="mix">半荤半素</option>
+            <option value="soup">汤</option>
+          </select>
+          <select id="dishProtein" class="txt" style="min-width:112px">
+            <option value="鱼">主料：鱼</option>
+            <option value="虾">主料：虾</option>
+            <option value="鸡">主料：鸡</option>
+            <option value="牛" selected>主料：牛</option>
+            <option value="羊">主料：羊</option>
+            <option value="猪">主料：猪</option>
+          </select>
+          <button id="btnSearchDish">② 🔍 在线查做法</button>
+        </div>
+        <div id="dishSourceBox" style="display:none;margin-bottom:8px" class="holiday"></div>
+        <textarea id="dishPaste" class="txt" style="width:100%;min-height:76px;margin-bottom:8px" placeholder="③ 把查到的做法整段粘贴到这里（支持「1. … 2. …」编号，或「食材：…」开头）"></textarea>
+        <div class="controls">
+          <button class="primary" id="btnParsePaste">④ 解析并填入</button>
+          <button class="primary" id="btnAddDish">⑤ ＋ 添加到菜品库</button>
+          <span class="hint" style="margin:0">分类选"素菜"时忽略主料；不粘贴也能直接添加（做法用家常模板）</span>
+        </div>
+      </div>
+      <div id="dishPreviewWrap" style="display:none;margin-bottom:14px"></div>
+      <div class="tabs" id="libTabs" style="margin-bottom:14px"></div>
+      <div class="meals" id="libGrid"></div>
+    </section>
+  </div>
+
+  <footer class="foot">
+    本应用为单文件离线工具，菜品图片由内置矢量插画生成，不依赖网络。<br>
+    营养数据为每道菜整份估算值（4 人份），用于日常参考，非医疗建议。
+  </footer>
+</div>
+
+<div class="mask" id="mask"><div class="modal" id="modal"></div></div>
+<div class="mask" id="modal2wine"><div class="modal" id="modal2box" style="max-width:560px"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   一、时令与季节
+   ========================================================================= */
+const SEASONS = {
+  spring:{name:'春季', icon:'🌱', months:[3,4,5],
+    veg:['春笋','香椿','荠菜','菠菜','豌豆','芦笋','韭菜','莴笋','蒜苗','蚕豆','油菜','西兰花'],
+    note:'春季宜养肝，多食芽苗类、绿叶菜，味宜清淡少酸。'},
+  summer:{name:'夏季', icon:'☀️', months:[6,7,8],
+    veg:['丝瓜','苦瓜','冬瓜','黄瓜','茄子','空心菜','秋葵','毛豆','西红柿','绿豆芽','苋菜','西葫芦'],
+    note:'夏季宜清热利湿，多食瓜类，少油少辣，可适当安排凉拌菜。'},
+  autumn:{name:'秋季', icon:'🍂', months:[9,10,11],
+    veg:['莲藕','南瓜','山药','板栗','芋头','茭白','西兰花','芥蓝','菠菜','芹菜','秋葵','香菇','木耳','荷兰豆','彩椒','芦笋','小白菜','娃娃菜'],
+    note:'秋季宜润燥养肺，多食白色/根茎类（莲藕、山药、芋头、白萝卜），荤菜可渐入羊肉。'},
+  winter:{name:'冬季', icon:'❄️', months:[12,1,2],
+    veg:['白萝卜','大白菜','胡萝卜','山药','冬笋','香菇','金针菇','菠菜','娃娃菜','西兰花','土豆','莲藕','大葱'],
+    note:'冬季宜温补，可安排羊肉、牛肉，汤菜与水煮菜更合适。'}
+};
+function seasonOf(d){const m=d.getMonth()+1;for(const k in SEASONS){if(SEASONS[k].months.includes(m))return k;}return 'autumn';}
+/* 羊肉按季节：秋冬可排，春夏不排 */
+const LAMB_SEASONS=['autumn','winter'];
+const PORK_WEEKLY_LIMIT=2;
+
+/* =========================================================================
+   二、菜品数据库
+   字段：id 名称 cat(meat/veg/mix/soup) protein(鱼/虾/鸡/牛/猪/羊/素/—)
+        season(时令季节数组, null 表示四季) heat/protein_g/fat_g/fiber_g/ingredients/steps/v(插画类型)
+        pair 主配菜(时令蔬菜) minutes 烹饪分钟
+   ========================================================================= */
+const DISHES = [
+/* ---------------- 荤菜：鱼 ---------------- */
+{id:'y1',name:'清蒸鲈鱼',cat:'meat',protein:'鱼',season:['spring','summer','autumn','winter'],heat:820,protein_g:96,fat_g:30,fiber_g:1,minutes:20,v:'fish',
+ ing:['鲈鱼 1条(约700g)','姜片 6片','葱段 3根','蒸鱼豉油 3勺','料酒 1勺','食用油 2勺'],
+ steps:['鲈鱼去鳞去内脏，两面各划 3 刀，用料酒和少许盐抹匀，鱼腹塞姜片葱段，腌 10 分钟去腥。',
+        '盘底铺葱段和姜片，把鱼架在上面（让蒸汽流通，避免鱼肉泡在水里）。',
+        '水开后大火蒸 8 分钟（700g 约 8 分钟，每增 100g 加 1 分钟），关火焖 2 分钟再开盖。',
+        '倒掉盘中腥水，拣去姜葱，铺上新鲜葱丝。',
+        '淋蒸鱼豉油，把油烧到冒烟后均匀浇在葱丝上激香，趁热上桌。'],
+ tip:'蒸鱼一定要水开后再下锅，全程大火；蒸太久鱼肉会柴。'},
+{id:'y2',name:'红烧带鱼',cat:'meat',protein:'鱼',season:['spring','summer','autumn','winter'],heat:900,protein_g:88,fat_g:42,fiber_g:1,minutes:30,v:'fish',
+ ing:['带鱼 2条','姜片 5片','蒜 5瓣','生抽 2勺','老抽 半勺','料酒 2勺','白糖 1勺','香醋 1勺'],
+ steps:['带鱼切段，用厨房纸把表面水分擦干（这一步决定是否粘锅），加料酒姜片腌 15 分钟。',
+        '锅烧热后放油，油温六成热下带鱼，中火煎到两面金黄定型，盛出。',
+        '底油爆香姜蒜，加生抽、老抽、白糖、香醋和小半碗热水烧开。',
+        '放入带鱼段，小火焖 8 分钟，中途轻晃锅而不要反复翻动。',
+        '大火收汁到浓稠挂勺，撒葱花出锅。'],
+ tip:'煎之前拍一层薄淀粉更不易破皮；收汁时晃锅不翻炒，鱼块才完整。'},
+{id:'y3',name:'番茄龙利鱼',cat:'meat',protein:'鱼',season:['summer','autumn'],heat:640,protein_g:78,fat_g:20,fiber_g:3,minutes:25,v:'fish',
+ ing:['龙利鱼柳 500g','番茄 3个','番茄酱 1勺','蛋清 1个','淀粉 1勺','盐 糖 适量'],
+ steps:['鱼柳斜刀切片，加蛋清、淀粉、少许盐抓匀，腌 15 分钟上浆（这样鱼片滑嫩不散）。',
+        '番茄顶部划十字，开水烫 1 分钟去皮，切小块。',
+        '锅中少油炒番茄块，中火压炒出红汁，加番茄酱和半碗水煮成浓汤。',
+        '汤微沸时逐片下鱼片，不要搅动，煮 2 分钟至变白。',
+        '加盐和一点点糖平衡酸味，撒葱花即可。'],
+ tip:'番茄一定要炒出沙出汁，汤才浓；鱼片下锅后只推不搅。'},
+{id:'y4',name:'蒜蓉粉丝蒸虾',cat:'meat',protein:'虾',season:['spring','summer','autumn','winter'],heat:700,protein_g:82,fat_g:24,fiber_g:2,minutes:22,v:'shrimp',
+ ing:['鲜虾 500g','粉丝 1小把','蒜 1整头','蒸鱼豉油 2勺','小米椒 1个','食用油 3勺'],
+ steps:['粉丝温水泡软后剪短，铺在盘底。虾开背去虾线，摆在粉丝上。',
+        '蒜切末，一半用中小火炸成金黄（金蒜），与另一半生蒜混合，加少许盐。',
+        '把蒜蓉铺在虾背上，每只虾都盖到。',
+        '水开后大火蒸 6 分钟，虾身弯曲变红即可，久蒸肉会老。',
+        '出锅淋蒸鱼豉油，浇一勺热油，撒葱花和小米椒圈。'],
+ tip:'蒜蓉一半炸香一半生用，香味层次最好；蒸的时间从水开算。'},
+{id:'y5',name:'香煎三文鱼',cat:'meat',protein:'鱼',season:['spring','summer','autumn','winter'],heat:780,protein_g:86,fat_g:48,fiber_g:1,minutes:15,v:'fish',
+ ing:['三文鱼 500g','黑胡椒 适量','海盐 适量','柠檬 半个','黄油 15g','迷迭香 少许'],
+ steps:['三文鱼用厨房纸吸干水分，两面撒海盐和黑胡椒，静置 10 分钟。',
+        '平底锅中火烧热，少油，鱼皮朝下先煎 4 分钟，不要移动，直到鱼皮酥脆。',
+        '翻面再煎 2 分钟，加入黄油和迷迭香，用勺子把融化的黄油反复浇在鱼肉上。',
+        '出锅前挤柠檬汁提味，静置 2 分钟再切，肉汁不流失。'],
+ tip:'三文鱼不要煎到全熟，中心略带橙红最好吃；柠檬最后放，避免发苦。'},
+{id:'y6',name:'红烧黄鱼',cat:'meat',protein:'鱼',season:['autumn','winter','spring'],heat:880,protein_g:90,fat_g:38,fiber_g:1,minutes:28,v:'fish',
+ ing:['黄花鱼 2条','姜 5片','蒜 4瓣','干辣椒 2个','生抽 2勺','老抽 半勺','料酒 2勺','白糖 1勺'],
+ steps:['黄鱼处理干净，两面打斜刀，用姜片料酒腌 10 分钟，擦干水分。',
+        '热锅热油，下鱼中火煎至两面定型微黄。',
+        '加姜蒜、干辣椒爆香，烹料酒，加生抽老抽白糖和半碗开水。',
+        '小火烧 10 分钟，中途用勺把汤汁淋在鱼身上。',
+        '大火收汁，撒葱花出锅。'],
+ tip:'黄鱼肉质细嫩，翻面时用两把铲子托着翻，不易碎。'},
+/* ---------------- 荤菜：鸡 ---------------- */
+{id:'j1',name:'香菇滑鸡',cat:'meat',protein:'鸡',season:['autumn','winter','spring','summer'],heat:760,protein_g:92,fat_g:34,fiber_g:3,minutes:30,v:'chicken',
+ ing:['鸡腿肉 600g','干香菇 8朵','姜 4片','蚝油 1勺','生抽 2勺','淀粉 1勺','料酒 1勺'],
+ steps:['鸡腿肉去骨切块，加生抽、蚝油、料酒、淀粉抓匀腌 20 分钟。',
+        '干香菇温水泡发 30 分钟，挤干切块，泡菇水留用。',
+        '热锅下油，爆香姜片，倒入鸡块大火翻炒至变色。',
+        '加香菇同炒，倒入泡菇水没过食材一半，小火焖 12 分钟。',
+        '大火收汁，尝味后补盐，出锅。'],
+ tip:'泡香菇的水是天然鲜味剂，过滤后用来焖，味道完全不同。'},
+{id:'j2',name:'宫保鸡丁',cat:'meat',protein:'鸡',season:['spring','summer','autumn','winter'],heat:860,protein_g:88,fat_g:44,fiber_g:4,minutes:25,v:'chicken',
+ ing:['鸡胸肉 500g','花生米 80g','干辣椒 8个','花椒 1小勺','葱白 3段','生抽 醋 糖 淀粉'],
+ steps:['鸡胸切 1.5cm 丁，加料酒、生抽、淀粉抓匀腌 15 分钟。',
+        '调碗汁：生抽 2 勺、香醋 3 勺、白糖 2 勺、淀粉半勺、水 3 勺，搅匀备用。',
+        '花生米冷油小火炸至微黄，捞出放凉（会变脆）。',
+        '热锅热油下鸡丁大火滑炒至变白，推到一边，下干辣椒花椒炒香。',
+        '倒入碗汁快速翻炒挂芡，最后放葱白和花生米，翻两下立刻出锅。'],
+ tip:'花生最后放才脆；碗汁要一次倒完并快速翻，芡才不会结块。'},
+{id:'j3',name:'栗子焖鸡',cat:'meat',protein:'鸡',season:['autumn','winter'],heat:880,protein_g:90,fat_g:36,fiber_g:6,minutes:40,v:'chicken',
+ ing:['鸡块 700g','板栗 250g','姜 4片','生抽 3勺','老抽 半勺','冰糖 15g','料酒 2勺'],
+ steps:['板栗用刀划口，开水煮 5 分钟后剥壳（趁热剥最容易）。',
+        '鸡块冷水下锅焯水，撇去浮沫，捞出冲净。',
+        '锅中少油炒冰糖至枣红色，下鸡块翻炒上糖色。',
+        '加姜片、料酒、生抽、老抽，加开水没过鸡块，放入板栗。',
+        '小火焖 25 分钟，大火收汁至浓稠，撒葱花。'],
+ tip:'秋季板栗正当时，与鸡肉同焖温润不燥；糖色炒到枣红立刻下肉，不然会苦。'},
+{id:'j4',name:'清炖鸡汤',cat:'soup',protein:'鸡',season:['autumn','winter','spring'],heat:520,protein_g:62,fat_g:26,fiber_g:1,minutes:70,v:'soup',
+ ing:['土鸡 半只','姜 5片','红枣 6颗','枸杞 1小把','山药 200g','盐 适量'],
+ steps:['鸡块冷水下锅焯水，撇净浮沫后捞出用温水冲净。',
+        '鸡块放入砂锅，加足量开水和姜片，大火烧开转最小火。',
+        '小火慢炖 50 分钟，期间不要频繁开盖。',
+        '加入山药块和红枣再炖 15 分钟。',
+        '出锅前 5 分钟放枸杞，最后才加盐（早放盐肉会紧）。'],
+ tip:'炖汤用开水且一次加足，中途加水会冲淡鲜味；盐最后放。'},
+{id:'j5',name:'茭白炒鸡丝',cat:'meat',protein:'鸡',season:['autumn'],heat:620,protein_g:76,fat_g:24,fiber_g:4,minutes:20,v:'chicken',
+ ing:['鸡胸肉 400g','茭白 3根','青椒 1个','蒜 3瓣','盐 生抽 淀粉'],
+ steps:['鸡胸顺纹切丝，加盐、料酒、淀粉、一点油抓匀腌 15 分钟。',
+        '茭白去皮切丝，青椒切丝。',
+        '热锅热油，下鸡丝大火快速滑散至变白，盛出。',
+        '底油炒蒜末和茭白丝 2 分钟，加青椒丝再炒 1 分钟。',
+        '倒回鸡丝，加盐和少许生抽，大火翻匀出锅。'],
+ tip:'茭白是秋季时令，清甜脆嫩；鸡丝提前用油封住，炒时不易粘连。'},
+{id:'j6',name:'柠檬手撕鸡',cat:'meat',protein:'鸡',season:['summer','autumn'],heat:580,protein_g:84,fat_g:20,fiber_g:2,minutes:30,v:'chicken',
+ ing:['鸡腿 4只','柠檬 1个','小米椒 3个','香菜 2根','蒜末 生抽 香醋 香油'],
+ steps:['鸡腿冷水下锅，加姜片葱段料酒，水开煮 12 分钟，关火焖 8 分钟。',
+        '捞出立刻放入冰水浸泡 10 分钟，鸡皮会爽脆弹牙。',
+        '沥干后手工撕成条，去掉骨头。',
+        '调汁：生抽 2 勺、香醋 2 勺、柠檬汁 2 勺、蒜末、小米椒、香油、少许糖。',
+        '浇汁拌匀，撒香菜和柠檬片，冷藏 20 分钟更入味。'],
+ tip:'冰水激这一步是手撕鸡口感的关键，千万别省。'},
+/* ---------------- 荤菜：牛 ---------------- */
+{id:'n1',name:'番茄炖牛腩',cat:'meat',protein:'牛',season:['autumn','winter','spring'],heat:960,protein_g:98,fat_g:52,fiber_g:5,minutes:90,v:'beef',
+ ing:['牛腩 800g','番茄 4个','洋葱 1个','姜 5片','番茄酱 2勺','八角 1个','料酒 2勺'],
+ steps:['牛腩切 3cm 块，冷水下锅加姜片料酒焯水，撇净浮沫后捞出温水冲净。',
+        '番茄去皮切块，洋葱切块。',
+        '锅中少油炒洋葱至微黄，加番茄块中火炒出红汁，加番茄酱炒匀。',
+        '放入牛腩翻炒上色，加开水没过食材 2cm，放八角。',
+        '小火炖 60–75 分钟至牛腩软烂（高压锅 25 分钟），最后加盐调味。'],
+ tip:'牛腩选带筋带肥的"坑腩"最香；番茄分两次放，一半炖化、一半起锅前放保留果肉。'},
+{id:'n2',name:'黑椒牛柳',cat:'meat',protein:'牛',season:['spring','summer','autumn','winter'],heat:840,protein_g:94,fat_g:44,fiber_g:3,minutes:25,v:'beef',
+ ing:['牛里脊 500g','彩椒 2个','洋葱 半个','黑胡椒碎 1勺','蚝油 1勺','生抽 淀粉'],
+ steps:['牛里脊逆纹切条，加生抽、蚝油、淀粉、一点小苏打和水抓匀，腌 20 分钟。',
+        '彩椒、洋葱切条。',
+        '锅烧到冒烟，多放一点油，下牛柳大火快炒 40 秒至变色立刻盛出。',
+        '底油炒洋葱彩椒 1 分钟，撒黑胡椒碎炒香。',
+        '倒回牛柳，淋少许蚝油和热水，大火翻匀 20 秒出锅。'],
+ tip:'牛柳要"热锅快炒、分两次"，全程不超过 2 分钟，肉才嫩。'},
+{id:'n3',name:'萝卜炖牛腩',cat:'meat',protein:'牛',season:['winter','autumn'],heat:900,protein_g:96,fat_g:46,fiber_g:6,minutes:85,v:'beef',
+ ing:['牛腩 700g','白萝卜 1根','姜 5片','桂皮 1小块','香叶 2片','生抽 3勺','料酒 2勺'],
+ steps:['牛腩切块焯水，冲净备用。',
+        '白萝卜去皮切滚刀块。',
+        '牛腩加姜片、料酒、生抽、香料和开水，小火炖 50 分钟。',
+        '放入白萝卜继续炖 25 分钟至萝卜透明入味。',
+        '挑出香料，加盐调味，撒香菜或葱花。'],
+ tip:'冬季经典组合，萝卜吸油解腻；萝卜后放才不会炖烂成泥。'},
+{id:'n4',name:'山药牛肉粒',cat:'meat',protein:'牛',season:['autumn','winter'],heat:760,protein_g:88,fat_g:36,fiber_g:5,minutes:25,v:'beef',
+ ing:['牛里脊 400g','铁棍山药 250g','彩椒 1个','蒜 3瓣','黑胡椒 蚝油 生抽'],
+ steps:['牛肉切 1.5cm 粒，加生抽、蚝油、淀粉、黑胡椒腌 20 分钟。',
+        '山药去皮切粒（戴手套操作防痒），泡清水防氧化。',
+        '热锅热油下牛肉粒大火煎至四面变色，盛出。',
+        '底油下蒜末、山药粒翻炒 3 分钟，加少许水焖 2 分钟至断生。',
+        '倒回牛肉粒和彩椒粒，加盐和黑胡椒，大火炒匀出锅。'],
+ tip:'秋天山药配牛肉补而不燥；山药炒到边缘微透明就熟了。'},
+/* ---------------- 荤菜：虾 ---------------- */
+{id:'x1',name:'西兰花炒虾仁',cat:'meat',protein:'虾',season:['autumn','winter','spring'],heat:540,protein_g:72,fat_g:18,fiber_g:6,minutes:20,v:'shrimp',
+ ing:['鲜虾仁 400g','西兰花 1颗','蒜 3瓣','淀粉 蛋清 盐 白胡椒'],
+ steps:['虾仁开背去虾线，用盐、蛋清、淀粉、白胡椒抓匀腌 15 分钟。',
+        '西兰花掰小朵，加盐和几滴油的沸水焯 1 分钟，捞出过凉水保持翠绿。',
+        '热锅热油下虾仁大火炒至卷曲变红，盛出。',
+        '爆香蒜末，下西兰花翻炒 1 分钟。',
+        '倒回虾仁，加盐和一点水淀粉勾薄芡，炒匀出锅。'],
+ tip:'西兰花焯水后过冷水才脆绿；虾仁炒到刚卷起就好，过火会硬。'},
+{id:'x2',name:'韭菜炒河虾',cat:'meat',protein:'虾',season:['spring','autumn'],heat:560,protein_g:70,fat_g:24,fiber_g:4,minutes:15,v:'shrimp',
+ ing:['小河虾 400g','韭菜 250g','姜末 干辣椒 盐 料酒'],
+ steps:['河虾剪去须脚，洗净沥干，用料酒和姜末腌 10 分钟。',
+        '韭菜洗净切 4cm 段，根部和叶部分开。',
+        '热锅热油爆香姜末和干辣椒，下河虾大火翻炒至全红。',
+        '先下韭菜根部炒 30 秒，再下叶部。',
+        '加盐调味，全程大火 1 分钟出锅（韭菜久炒出水变黄）。'],
+ tip:'韭菜要最后快炒，断生即出；河虾连壳吃补钙。'},
+/* ---------------- 荤菜：羊（仅秋冬） ---------------- */
+{id:'q1',name:'萝卜炖羊肉',cat:'meat',protein:'羊',season:['autumn','winter'],heat:880,protein_g:96,fat_g:48,fiber_g:6,minutes:95,v:'lamb',
+ ing:['羊腿肉 800g','白萝卜 1根','姜 6片','当归 2片(可选)','料酒 3勺','白胡椒 盐'],
+ steps:['羊肉切 4cm 块，冷水浸泡 30 分钟去血水，中途换水 2 次。',
+        '冷水下锅加姜片和料酒焯水，水开后撇净浮沫，捞出用温水冲洗干净（不要用冷水，肉会紧）。',
+        '羊肉与姜片入砂锅，加足量开水，大火烧开转小火炖 60 分钟。',
+        '白萝卜去皮切滚刀块，下锅再炖 25 分钟至萝卜透明。',
+        '加盐和白胡椒调味，撒香菜或葱花，趁热连汤吃。'],
+ tip:'秋冬温补首选。加两片当归更滋补，但孕妇不宜；萝卜后放才不会炖散。'},
+{id:'q2',name:'孜然羊肉',cat:'meat',protein:'羊',season:['autumn','winter'],heat:900,protein_g:94,fat_g:54,fiber_g:3,minutes:25,v:'lamb',
+ ing:['羊后腿肉 600g','洋葱 半个','孜然粒 2勺','辣椒面 1勺','生抽 料酒 淀粉'],
+ steps:['羊肉逆纹切薄片，加料酒、生抽、淀粉和 1 勺油抓匀，腌 20 分钟。',
+        '洋葱切丝备用；孜然粒用刀略压碎，香味更足。',
+        '锅烧到冒烟，多放一点油，下羊肉大火快速翻炒 1 分钟至变色。',
+        '加洋葱丝炒 30 秒，撒孜然碎和辣椒面。',
+        '大火翻匀 20 秒，尝味补盐，立刻出锅（久炒会老）。'],
+ tip:'羊肉要大火快炒、断生即出；孜然最后放，香气最冲。'},
+{id:'q3',name:'葱爆羊肉',cat:'meat',protein:'羊',season:['autumn','winter'],heat:860,protein_g:92,fat_g:50,fiber_g:3,minutes:18,v:'lamb',
+ ing:['羊里脊 500g','大葱 3根','姜丝 少许','生抽 2勺','香醋 半勺','料酒 淀粉'],
+ steps:['羊肉逆纹切薄片，加料酒、生抽、淀粉和一点油抓匀，腌 15 分钟。',
+        '大葱斜切马蹄段，葱白葱绿分开。',
+        '锅烧到冒烟，放油后下羊肉大火爆炒 40 秒至变色，盛出。',
+        '底油下姜丝和葱白爆香，倒回羊肉。',
+        '加葱绿、生抽，沿锅边淋半勺香醋，大火翻匀 20 秒立刻出锅。'],
+ tip:'"葱爆"讲究旺火速成，全程不超过 1 分半；香醋沿锅边淋才提香不酸。'},
+/* ---------------- 荤菜：猪（间或安排） ---------------- */
+{id:'z1',name:'莲藕炖排骨',cat:'meat',protein:'猪',season:['autumn','winter'],heat:920,protein_g:78,fat_g:52,fiber_g:6,minutes:80,v:'pork',
+ ing:['猪肋排 700g','莲藕 500g','姜 5片','料酒 2勺','枸杞 1小把','盐 适量'],
+ steps:['排骨冷水下锅焯水，撇净浮沫，捞出用温水冲洗干净。',
+        '莲藕去皮切滚刀块，泡入清水防止发黑。',
+        '排骨与姜片放入砂锅，加开水没过，大火烧开转小火炖 40 分钟。',
+        '放入莲藕继续炖 25 分钟至粉糯。',
+        '出锅前加枸杞和盐，再煮 3 分钟即可。'],
+ tip:'炖藕选七孔粉藕（外皮偏褐、切面多孔），口感才绵密；汤要一次加足水。'},
+{id:'z2',name:'青椒炒肉丝',cat:'meat',protein:'猪',season:['spring','summer','autumn','winter'],heat:720,protein_g:70,fat_g:46,fiber_g:3,minutes:18,v:'pork',
+ ing:['猪里脊 400g','青椒 4个','蒜 3瓣','生抽 蚝油 淀粉 料酒'],
+ steps:['里脊切细丝，加生抽、料酒、淀粉、一点油抓匀腌 15 分钟。',
+        '青椒去籽切丝，蒜切片。',
+        '热锅热油下肉丝大火滑散至变色，盛出。',
+        '底油爆香蒜片，下青椒丝大火炒 1 分钟至断生微虎皮。',
+        '倒回肉丝，加蚝油和盐，大火翻匀出锅。'],
+ tip:'猪肉每周安排 1–2 次即可，其余以鱼虾禽牛为主，脂肪结构更优。'},
+/* ---------------- 素菜（当季时令） ---------------- */
+{id:'v1',name:'蒜蓉炒时蔬',cat:'veg',protein:'素',season:null,heat:160,protein_g:6,fat_g:9,fiber_g:6,minutes:10,v:'leaf',
+ ing:['当季绿叶菜 500g','蒜 4瓣','盐 适量','食用油 2勺'],
+ steps:['绿叶菜择洗干净，充分沥干水分（带水下锅会溅油且出水）。',
+        '蒜拍碎切末。',
+        '锅烧热放油，下蒜末小火炒出香味（不要炒黄）。',
+        '转大火下菜，快速翻炒 40–60 秒至塌软。',
+        '沿锅边淋一点热水，加盐炒匀立刻出锅。'],
+ tip:'绿叶菜全程大火快炒，出锅前再放盐，颜色翠绿不出水。',
+ seasonal:['菠菜','小白菜','油菜','苋菜','空心菜','芥蓝','娃娃菜','豌豆','春笋']},
+{id:'v2',name:'凉拌木耳',cat:'veg',protein:'素',season:['spring','summer','autumn','winter'],heat:130,protein_g:5,fat_g:7,fiber_g:9,minutes:15,v:'fungus',
+ ing:['干木耳 30g','小米椒 2个','香菜 2根','蒜末 香醋 生抽 香油'],
+ steps:['干木耳冷水泡发 2 小时（不要用热水，口感会烂），撕成小朵。',
+        '沸水焯 3 分钟，捞出立刻过冰水，保持脆爽。',
+        '调汁：蒜末、香醋 3 勺、生抽 2 勺、香油 1 勺、少许糖和盐。',
+        '木耳与料汁拌匀，加小米椒圈和香菜段。',
+        '冷藏 15 分钟风味更佳。'],
+ tip:'木耳必须冷水慢泡；泡发超过 8 小时的木耳不要食用。'},
+{id:'v3',name:'蚝油生菜',cat:'veg',protein:'素',season:['spring','autumn','winter'],heat:150,protein_g:5,fat_g:8,fiber_g:6,minutes:10,v:'leaf',
+ ing:['生菜 2颗','蚝油 1勺','蒜 4瓣','生抽 半勺','淀粉 少许'],
+ steps:['生菜掰开洗净，沸水中加盐和几滴油，焯 20 秒立刻捞出摆盘。',
+        '蒜切末，用少许油炒香。',
+        '加蚝油、生抽、半碗水和一点水淀粉，煮成薄芡汁。',
+        '把芡汁均匀淋在生菜上即可。'],
+ tip:'焯水时间控制在 20 秒内，生菜才脆；芡汁要薄，能挂住又不糊。'},
+{id:'v4',name:'清炒莲藕片',cat:'veg',protein:'素',season:['autumn'],heat:190,protein_g:6,fat_g:8,fiber_g:7,minutes:15,v:'lotus',
+ ing:['莲藕 1节','青椒 1个','白醋 1勺','蒜 3瓣','盐 适量'],
+ steps:['莲藕去皮切薄片，立刻泡入加了几滴白醋的清水中（防氧化变黑）。',
+        '热锅热油爆香蒜片。',
+        '沥干藕片下锅，大火翻炒 2 分钟。',
+        '加青椒片，淋白醋（保持脆白），加盐炒匀。',
+        '藕片边缘微透明即可出锅，不要炒久。'],
+ tip:'秋季莲藕最当时；加白醋既防黑又保脆，这是关键一步。'},
+{id:'v5',name:'蒜蓉炒秋葵',cat:'veg',protein:'素',season:['summer','autumn'],heat:170,protein_g:7,fat_g:8,fiber_g:8,minutes:12,v:'okra',
+ ing:['秋葵 400g','蒜 4瓣','生抽 1勺','盐 适量'],
+ steps:['秋葵用盐搓洗表面绒毛，整根下沸水焯 1 分钟（整根焯可减少黏液流失）。',
+        '捞出过凉水，去蒂斜切成段。',
+        '热锅热油爆香蒜末。',
+        '下秋葵大火快炒 1 分钟。',
+        '加生抽和盐炒匀立即出锅。'],
+ tip:'秋葵黏液是水溶性膳食纤维，整根焯再切能保留更多。'},
+{id:'v6',name:'清炒山药木耳',cat:'veg',protein:'素',season:['autumn','winter'],heat:200,protein_g:7,fat_g:8,fiber_g:8,minutes:18,v:'yam',
+ ing:['铁棍山药 300g','泡发木耳 80g','胡萝卜 半根','蒜 3瓣','盐 少许'],
+ steps:['山药去皮切片，泡白醋水防氧化（建议戴手套处理）。',
+        '木耳撕小朵，胡萝卜切薄片。',
+        '热锅热油爆香蒜片。',
+        '先下胡萝卜片炒 1 分钟，再下山药和木耳大火翻炒 2 分钟。',
+        '加盐和少量热水，炒至山药断生出锅。'],
+ tip:'山药炒制时间要短，脆口最好；此菜润燥，是秋季首选素菜。'},
+{id:'v7',name:'蒜蓉西兰花',cat:'veg',protein:'素',season:['autumn','winter','spring'],heat:180,protein_g:9,fat_g:8,fiber_g:9,minutes:12,v:'broccoli',
+ ing:['西兰花 1颗','蒜 5瓣','蚝油 半勺','盐 适量'],
+ steps:['西兰花掰小朵，盐水浸泡 10 分钟去除缝隙杂质。',
+        '沸水加盐和几滴油，焯 1 分钟，捞出过冷水。',
+        '热锅热油小火炒香蒜末至微黄。',
+        '下西兰花大火翻炒 1 分钟。',
+        '加蚝油和盐炒匀出锅。'],
+ tip:'西兰花焯水后过冷水能锁住翠绿；蒜末炒到微黄香气最浓。'},
+{id:'v8',name:'白灼芥蓝',cat:'veg',protein:'素',season:['autumn','winter'],heat:150,protein_g:7,fat_g:7,fiber_g:7,minutes:12,v:'leaf',
+ ing:['芥蓝 500g','姜丝 少许','蒸鱼豉油 2勺','食用油 2勺'],
+ steps:['芥蓝削去老根外皮，切成 6cm 长段。',
+        '沸水中加盐和油，先下梗部煮 40 秒，再下叶部煮 30 秒。',
+        '捞出整齐摆盘，铺上姜丝。',
+        '淋蒸鱼豉油，浇一勺热油激香。',
+        '趁热食用，口感最爽脆。'],
+ tip:'芥蓝略带苦味，白灼最能保留甘脆；梗叶分开下锅熟度才一致。'},
+{id:'v9',name:'葱油南瓜',cat:'veg',protein:'素',season:['autumn'],heat:230,protein_g:5,fat_g:8,fiber_g:6,minutes:20,v:'pumpkin',
+ ing:['老南瓜 600g','小葱 4根','盐 少许','食用油 2勺'],
+ steps:['南瓜去皮去瓤，切 2cm 厚片，摆入盘中。',
+        '上锅大火蒸 12 分钟至用筷子能轻松插入。',
+        '小葱切段，冷油下锅小火慢炸至葱段焦黄，制成葱油。',
+        '把葱油连葱段浇在南瓜上。',
+        '撒少许盐即可，南瓜本身清甜。'],
+ tip:'南瓜选老南瓜（皮硬、纹路深）才够甜糯；葱油要小火慢炸才香不苦。'},
+{id:'v10',name:'香菇油菜',cat:'veg',protein:'素',season:['autumn','winter','spring'],heat:190,protein_g:8,fat_g:8,fiber_g:7,minutes:15,v:'mushroom',
+ ing:['鲜香菇 200g','油菜 400g','蚝油 1勺','蒜 3瓣','淀粉 少许'],
+ steps:['香菇去蒂切片，油菜从中间剖开洗净。',
+        '沸水焯油菜 20 秒捞出摆盘。',
+        '热锅热油爆香蒜末，下香菇片炒至出香变软。',
+        '加蚝油、半碗水，煮 2 分钟后水淀粉勾薄芡。',
+        '把香菇连芡汁浇在油菜上。'],
+ tip:'香菇要炒到出香味再加汤；油菜焯水摆盘，卖相清爽。'},
+{id:'v11',name:'酸辣土豆丝',cat:'veg',protein:'素',season:['autumn','winter','spring','summer'],heat:250,protein_g:6,fat_g:10,fiber_g:6,minutes:15,v:'potato',
+ seasonal:['土豆','胡萝卜'],
+ ing:['土豆 2个','干辣椒 3个','花椒 10粒','白醋 2勺','盐 适量'],
+ steps:['土豆去皮切细丝，泡冷水 5 分钟洗去表面淀粉，沥干。',
+        '热锅冷油下花椒小火炸香，捞出花椒。',
+        '下干辣椒段炒出辣味。',
+        '大火下土豆丝快速翻炒 2 分钟。',
+        '沿锅边淋白醋，加盐炒匀，断生即出锅。'],
+ tip:'洗去淀粉+猛火+白醋，是土豆丝爽脆不粘的三要素。'},
+{id:'v12',name:'上汤娃娃菜',cat:'veg',protein:'素',season:['autumn','winter','spring'],heat:210,protein_g:9,fat_g:10,fiber_g:6,minutes:18,v:'leaf',
+ ing:['娃娃菜 2颗','皮蛋 1个','咸蛋 半个','蒜 4瓣','枸杞 少许'],
+ steps:['娃娃菜竖切四瓣，洗净沥干。',
+        '皮蛋和咸蛋切小丁，蒜切片。',
+        '热锅少油炒香蒜片和蛋丁，炒出香味。',
+        '加两碗开水煮 3 分钟成奶白汤底。',
+        '放入娃娃菜煮 4 分钟，加枸杞，尝味后少量加盐。'],
+ tip:'蛋丁先炒再加水煮，汤色才奶白浓郁；有咸蛋就少放盐。'},
+{id:'v13',name:'清炒荷兰豆',cat:'veg',protein:'素',season:['autumn','winter','spring'],heat:160,protein_g:8,fat_g:8,fiber_g:7,minutes:12,v:'pea',
+ ing:['荷兰豆 400g','蒜 3瓣','盐 适量','食用油 2勺'],
+ steps:['荷兰豆撕去两侧的老筋（否则口感发柴），洗净沥干。',
+        '沸水加盐和油焯 30 秒，捞出过冷水。',
+        '热锅热油爆香蒜片。',
+        '下荷兰豆大火翻炒 1 分钟。',
+        '加盐炒匀出锅，保持翠绿脆嫩。'],
+ tip:'荷兰豆必须炒熟透（含皂苷），但不要炒到发黄；焯水能兼顾熟与脆。'},
+{id:'v14',name:'油焖茭白',cat:'veg',protein:'素',season:['autumn'],heat:220,protein_g:7,fat_g:11,fiber_g:6,minutes:18,v:'bamboo',
+ ing:['茭白 4根','生抽 2勺','白糖 1勺','小葱 2根','食用油 2勺'],
+ steps:['茭白去皮切滚刀块。',
+        '锅中稍多油，中火下茭白煎至表面微黄。',
+        '加生抽、白糖和小半碗水。',
+        '盖盖小火焖 5 分钟至入味。',
+        '大火收汁，撒葱花出锅。'],
+ tip:'茭白是秋季时令，油焖最能带出它的清甜；糖只提鲜不显甜。'},
+{id:'v16',name:'清炒豆芽',cat:'veg',protein:'素',season:['spring','summer','autumn','winter'],heat:150,protein_g:7,fat_g:7,fiber_g:6,minutes:10,v:'sprout',
+ seasonal:['绿豆芽','毛豆','豌豆'],
+ ing:['绿豆芽 500g','韭菜 100g','蒜 3瓣','白醋 1勺','盐 适量'],
+ steps:['豆芽洗净掐去根部，沥干水分。',
+        '韭菜切段，蒜切片。',
+        '热锅热油爆香蒜片。',
+        '大火下豆芽翻炒 1 分钟。',
+        '加韭菜、白醋和盐，再炒 30 秒出锅。'],
+ tip:'豆芽出水快，全程大火短炒；加白醋口感更爽脆。'},
+{id:'v17',name:'蚝油杏鲍菇',cat:'veg',protein:'素',season:['autumn','winter','spring','summer'],heat:200,protein_g:9,fat_g:9,fiber_g:7,minutes:15,v:'mushroom',
+ seasonal:['杏鲍菇','香菇','金针菇','彩椒'],
+ ing:['杏鲍菇 3根','青椒 1个','蚝油 1勺','生抽 半勺','蒜 3瓣'],
+ steps:['杏鲍菇切 0.5cm 厚片，表面打十字花刀更入味。',
+        '平底锅中火干煎杏鲍菇至两面微黄出水。',
+        '加少许油，下蒜末炒香。',
+        '加蚝油、生抽和一点水，翻炒 2 分钟。',
+        '加青椒片炒断生，收汁出锅。'],
+ tip:'先干煎再调味，杏鲍菇会有类似鲍鱼的弹牙口感。'},
+/* ---------------- 半荤半素 ---------------- */
+{id:'m1',name:'莲藕炒肉片',cat:'mix',protein:'猪',season:['autumn','winter'],heat:560,protein_g:42,fat_g:30,fiber_g:6,minutes:20,v:'lotus',
+ ing:['猪里脊 200g','莲藕 300g','木耳 50g','蒜 3瓣','生抽 蚝油 淀粉'],
+ steps:['里脊切薄片，加生抽、淀粉、料酒抓匀腌 15 分钟。',
+        '莲藕切薄片泡白醋水，木耳撕小朵。',
+        '热锅热油下肉片大火滑炒至变色，盛出。',
+        '底油炒香蒜片，下藕片和木耳大火炒 3 分钟。',
+        '倒回肉片，加蚝油和盐炒匀出锅。'],
+ tip:'秋藕配肉片，半荤半素不油腻；藕片泡醋水防黑。'},
+{id:'v18',name:'蒜蓉蒸茄子',cat:'veg',protein:'素',season:['summer','autumn'],heat:180,protein_g:6,fat_g:9,fiber_g:7,minutes:20,v:'eggplant',
+ ing:['长茄子 3根','蒜 1整头','小米椒 2个','蒸鱼豉油 2勺','香油 1勺'],
+ steps:['茄子对半剖开，表面划十字花刀（更易入味）。',
+        '上锅大火蒸 12 分钟至软透。',
+        '蒜切末，一半热油炒香成金蒜，混合另一半生蒜。',
+        '把蒜蓉铺在茄子上，淋蒸鱼豉油和香油。',
+        '再蒸 3 分钟，出锅撒小米椒和葱花。'],
+ tip:'茄子蒸比炒省油得多；金蒜+生蒜混合是香气的关键。'},
+/* 夏季补菜：确保夏季有足够的当季素菜/半荤半素，支撑一整周不重复 */
+{id:'v19',name:'蒜蓉丝瓜',cat:'veg',protein:'素',season:['summer'],heat:170,protein_g:6,fat_g:9,fiber_g:6,minutes:12,v:'leaf',
+ ing:['丝瓜 2根','蒜 5瓣','枸杞 少许','盐 适量'],
+ steps:['丝瓜刮去外皮（保留一层绿衣更清甜），切滚刀块。',
+        '蒜切末，热锅温油小火炒香蒜末。',
+        '转大火下丝瓜翻炒 1 分钟。',
+        '加 2 勺热水，盖盖焖 2 分钟至丝瓜变软出水。',
+        '加盐、撒枸杞，翻匀出锅。'],
+ tip:'丝瓜易出水，盐最后放、全程不过 3 分钟，才不会塌成泥。',
+ seasonal:['丝瓜','黄瓜','冬瓜','空心菜']},
+{id:'v20',name:'清炒苦瓜',cat:'veg',protein:'素',season:['summer'],heat:160,protein_g:6,fat_g:9,fiber_g:7,minutes:14,v:'okra',
+ ing:['苦瓜 2根','豆豉 1勺','蒜 4瓣','盐 少许'],
+ steps:['苦瓜剖开去瓤，斜切薄片，用盐抓 5 分钟后冲净（去部分苦味）。',
+        '沸水加几滴油焯 30 秒，捞出过冷水保持翠绿。',
+        '热锅热油爆香蒜末和豆豉。',
+        '大火下苦瓜翻炒 1 分半。',
+        '加盐炒匀出锅。'],
+ tip:'夏季清心降火；盐抓+快焯能减苦又保脆。',
+ seasonal:['苦瓜','丝瓜','黄瓜','冬瓜']},
+{id:'v21',name:'拍黄瓜',cat:'veg',protein:'素',season:['summer'],heat:120,protein_g:5,fat_g:8,fiber_g:5,minutes:10,v:'pea',
+ ing:['黄瓜 3根','蒜 4瓣','香醋 2勺','生抽 1勺','香油 1勺','白糖 半勺'],
+ steps:['黄瓜洗净拍裂后切段（拍过的断面更吸味），撒少许盐腌 5 分钟。',
+        '倒掉腌出的水分（这样成品不出汤）。',
+        '蒜拍成末，加香醋、生抽、白糖、香油调成料汁。',
+        '黄瓜与料汁拌匀。',
+        '冷藏 10 分钟风味更好，上桌前撒熟芝麻。'],
+ tip:'夏季最省事的开胃素菜；拍比切更入味。',
+ seasonal:['黄瓜','西红柿','彩椒']},
+{id:'m2',name:'板栗烧鸡',cat:'mix',protein:'鸡',season:['autumn','winter'],heat:680,protein_g:56,fat_g:32,fiber_g:7,minutes:40,v:'chestnut',
+ ing:['鸡腿 500g','板栗 250g','姜 4片','生抽 2勺','老抽 半勺','冰糖 10g'],
+ steps:['板栗划口煮 5 分钟后剥壳。',
+        '鸡腿剁块焯水，冲净浮沫。',
+        '锅中炒冰糖至枣红，下鸡块翻炒上色。',
+        '加姜片、生抽、老抽和开水，放板栗小火焖 25 分钟。',
+        '大火收汁至浓稠挂勺。'],
+ tip:'鸡肉与板栗同烧，蛋白质与碳水兼顾，是秋季经典半荤半素。'},
+{id:'m3',name:'山药炒肉片',cat:'mix',protein:'猪',season:['autumn','winter'],heat:540,protein_g:40,fat_g:28,fiber_g:6,minutes:20,v:'yam',
+ ing:['猪里脊 200g','铁棍山药 300g','胡萝卜 半根','蒜 3瓣','盐 生抽 淀粉'],
+ steps:['里脊切片，加生抽、淀粉、油腌 15 分钟。',
+        '山药去皮切片泡醋水（戴手套防痒）。',
+        '热锅热油滑炒肉片至变色，盛出。',
+        '底油炒香蒜片，下山药和胡萝卜片炒 3 分钟。',
+        '倒回肉片，加盐和少许热水炒匀出锅。'],
+ tip:'山药养胃，配少量猪肉补铁，适合老人孩子。'},
+{id:'m4',name:'虾仁炒蛋',cat:'mix',protein:'虾',season:['spring','summer','autumn','winter'],heat:520,protein_g:48,fat_g:32,fiber_g:2,minutes:15,v:'egg',
+ ing:['虾仁 200g','鸡蛋 5个','小葱 2根','料酒 盐 白胡椒'],
+ steps:['虾仁用盐、料酒、白胡椒腌 10 分钟。',
+        '鸡蛋打散，加少许盐和几滴料酒，搅打至起小泡。',
+        '热锅热油下虾仁炒至卷曲变红，盛出。',
+        '锅中补油，倒入蛋液，待边缘凝固时用铲子向中间推。',
+        '蛋液七成凝固时倒回虾仁，撒葱花，翻匀立即出锅。'],
+ tip:'蛋液半凝固就出锅，余温会继续凝固，口感才滑嫩。'},
+{id:'m5',name:'韭菜炒鸡蛋',cat:'mix',protein:'素',season:['spring','autumn'],heat:480,protein_g:36,fat_g:32,fiber_g:4,minutes:12,v:'egg',
+ ing:['韭菜 300g','鸡蛋 5个','盐 适量','食用油 3勺'],
+ steps:['韭菜洗净切 3cm 段，根叶分开。',
+        '鸡蛋打散加少许盐。',
+        '热锅多油，倒入蛋液炒成大块盛出。',
+        '底油先下韭菜根部炒 30 秒。',
+        '下叶部、倒回鸡蛋，加盐大火快炒 30 秒出锅。'],
+ tip:'韭菜配鸡蛋是经典半荤半素，成本低、蛋白质也不缺。'},
+{id:'m6',name:'西红柿炒鸡蛋',cat:'mix',protein:'素',season:['summer','autumn'],heat:500,protein_g:34,fat_g:32,fiber_g:4,minutes:15,v:'egg',
+ ing:['西红柿 3个','鸡蛋 5个','白糖 1小勺','盐 适量','小葱 1根'],
+ steps:['西红柿顶部划十字，开水烫后去皮，切块。',
+        '鸡蛋加少许盐打散。',
+        '热锅多油，倒入蛋液炒至刚凝固成大块，盛出。',
+        '底油下西红柿块，中火炒出红汁。',
+        '加糖和盐，倒回鸡蛋翻匀，撒葱花出锅。'],
+ tip:'糖不是为了甜，而是中和番茄酸味、提升鲜味层次。'},
+{id:'m7',name:'西兰花炒牛肉',cat:'mix',protein:'牛',season:['autumn','winter','spring'],heat:640,protein_g:56,fat_g:32,fiber_g:7,minutes:22,v:'beef',
+ ing:['牛里脊 250g','西兰花 1颗','蒜 3瓣','蚝油 生抽 淀粉 黑胡椒'],
+ steps:['牛肉逆纹切薄片，加生抽、蚝油、淀粉、黑胡椒和一勺水抓匀腌 20 分钟。',
+        '西兰花掰朵，盐水泡后焯 1 分钟过冷水。',
+        '热锅热油大火快炒牛肉至变色，盛出。',
+        '底油爆香蒜末，下西兰花炒 1 分钟。',
+        '倒回牛肉，加少许蚝油翻匀 30 秒出锅。'],
+ tip:'牛肉逆纹切+上浆+快炒，是嫩的三步；西兰花最后合炒避免过软。'},
+{id:'m8',name:'香菇酿肉',cat:'mix',protein:'猪',season:['autumn','winter','spring'],heat:600,protein_g:46,fat_g:36,fiber_g:5,minutes:35,v:'mushroom',
+ ing:['鲜香菇 12朵','猪肉末 250g','姜末 葱花 生抽 蚝油 淀粉'],
+ steps:['肉末加姜末、生抽、蚝油、淀粉和一点水，顺一个方向搅打上劲。',
+        '香菇去蒂，伞面朝下摆盘。',
+        '把肉馅酿进香菇伞里，压平表面。',
+        '上锅大火蒸 12 分钟。',
+        '蒸出的汁水倒回锅中，加水淀粉勾薄芡，淋在香菇上，撒葱花。'],
+ tip:'肉馅顺一个方向搅到发黏，蒸出来才紧实不散。'},
+{id:'m9',name:'虾仁滑蛋',cat:'mix',protein:'虾',season:['spring','summer','autumn','winter'],heat:540,protein_g:50,fat_g:33,fiber_g:2,minutes:15,v:'egg',
+ ing:['虾仁 250g','鸡蛋 5个','牛奶 2勺','盐 白胡椒 葱花'],
+ steps:['虾仁用盐、白胡椒腌 10 分钟，热油炒至变色盛出。',
+        '鸡蛋加牛奶和盐打散（牛奶让蛋更嫩滑）。',
+        '锅中放油，小火倒入蛋液。',
+        '用铲子不断把凝固的蛋往中间推，形成褶皱。',
+        '蛋液七成凝固时加入虾仁，翻匀出锅，撒葱花。'],
+ tip:'全程小火+牛奶，是茶餐厅式滑蛋的秘诀。'},
+{id:'m10',name:'南瓜炒肉片',cat:'mix',protein:'猪',season:['autumn'],heat:560,protein_g:38,fat_g:28,fiber_g:6,minutes:20,v:'pumpkin',
+ ing:['老南瓜 400g','猪里脊 200g','蒜 3瓣','生抽 蚝油 淀粉'],
+ steps:['里脊切片，加生抽、淀粉、油腌 15 分钟。',
+        '南瓜去皮切薄片。',
+        '热锅热油滑炒肉片至变色，盛出。',
+        '底油炒香蒜片，下南瓜片翻炒 3 分钟，加少量水焖 2 分钟。',
+        '倒回肉片，加蚝油和盐，炒匀出锅。'],
+ tip:'南瓜自带甜味，与肉片同炒无需加糖；焖到边缘软透最好吃。'},
+{id:'m11',name:'青椒炒鸡蛋',cat:'mix',protein:'素',season:['summer','autumn'],heat:470,protein_g:33,fat_g:31,fiber_g:4,minutes:12,v:'egg',
+ ing:['青椒 4个','鸡蛋 5个','蒜 2瓣','盐 生抽 少许'],
+ steps:['青椒去籽切小块，鸡蛋加盐打散。',
+        '热锅热油倒入蛋液，炒成大块盛出。',
+        '底油下蒜末和青椒块，大火炒至虎皮微皱。',
+        '倒回鸡蛋，加盐和几滴生抽。',
+        '大火翻炒 30 秒出锅。'],
+ tip:'青椒炒到表面起虎皮，香气才足。'},
+{id:'m12',name:'秋葵炒肉末',cat:'mix',protein:'猪',season:['summer','autumn'],heat:520,protein_g:36,fat_g:28,fiber_g:7,minutes:18,v:'okra',
+ ing:['秋葵 300g','猪肉末 200g','蒜 3瓣','生抽 蚝油 小米椒'],
+ steps:['秋葵整根焯水 1 分钟后切段。',
+        '热锅少油下肉末，中火炒散至粒粒分明。',
+        '加蒜末和小米椒炒香，烹生抽和蚝油。',
+        '下秋葵段翻炒 1 分钟。',
+        '加少许盐炒匀出锅。'],
+ tip:'肉末先炒干水分再调味，颗粒感更香。'},
+{id:'m13',name:'荷兰豆炒腊肉',cat:'mix',protein:'猪',season:['autumn','winter','spring'],heat:620,protein_g:40,fat_g:42,fiber_g:6,minutes:18,v:'pea',
+ ing:['荷兰豆 350g','腊肉 150g','蒜 3瓣','生抽 少许'],
+ steps:['腊肉切薄片，温水泡 10 分钟去多余咸味。',
+        '荷兰豆撕筋洗净，焯水 30 秒过冷水。',
+        '锅中少油，下腊肉小火煸出油、边缘微卷。',
+        '加蒜片炒香，下荷兰豆大火翻炒 1 分钟。',
+        '加几滴生抽炒匀出锅（腊肉咸，可不加盐）。'],
+ tip:'腊肉先煸出油再炒菜，香气足且不必额外放油。'},
+{id:'m14',name:'肉末烧豆腐',cat:'mix',protein:'猪',season:['autumn','winter','spring','summer'],heat:580,protein_g:48,fat_g:34,fiber_g:4,minutes:20,v:'tofu',
+ ing:['北豆腐 400g','猪肉末 200g','豆瓣酱 1勺','蒜 葱 生抽 淀粉'],
+ steps:['豆腐切 2cm 方块，淡盐水浸泡 5 分钟去豆腥、防碎。',
+        '热锅下肉末炒散至微黄，加豆瓣酱和蒜末炒出红油。',
+        '加半碗水烧开。',
+        '放入豆腐块，小火焖 5 分钟，中途晃锅不要翻炒。',
+        '水淀粉勾芡，撒葱花，轻推出锅。'],
+ tip:'豆腐用晃锅代替翻炒，块形完整；芡汁分两次勾更亮。'},
+{id:'m15',name:'菠菜炒粉丝',cat:'veg',protein:'素',season:['autumn','winter','spring'],heat:380,protein_g:14,fat_g:14,fiber_g:6,minutes:15,v:'leaf',
+ ing:['菠菜 400g','粉丝 1把','蒜 3瓣','生抽 蚝油 香油'],
+ steps:['菠菜洗净，沸水焯 30 秒（去草酸），捞出挤干切段。',
+        '粉丝温水泡软后剪短。',
+        '热锅热油爆香蒜末。',
+        '下粉丝，加生抽、蚝油和 2 勺水，翻炒至粉丝吸味。',
+        '下菠菜段炒匀，淋香油出锅。'],
+ tip:'菠菜一定要焯水去草酸，不影响钙吸收。'},
+{id:'m16',name:'茭白炒肉丝',cat:'mix',protein:'猪',season:['autumn'],heat:540,protein_g:38,fat_g:28,fiber_g:6,minutes:18,v:'bamboo',
+ ing:['茭白 3根','猪里脊 200g','青椒 1个','蒜 3瓣','生抽 淀粉'],
+ steps:['里脊切丝，加生抽、淀粉、油腌 15 分钟。',
+        '茭白去皮切丝，青椒切丝。',
+        '热锅热油滑炒肉丝至变色，盛出。',
+        '底油炒香蒜末，下茭白丝炒 2 分钟。',
+        '加青椒丝和肉丝，加盐炒匀出锅。'],
+ tip:'秋茭白清甜，配肉丝是江浙经典家常味。'},
+/* ---------------- 汤 ---------------- */
+{id:'t1',name:'山药排骨汤',cat:'soup',protein:'猪',season:['autumn','winter'],heat:560,protein_g:48,fat_g:32,fiber_g:5,minutes:75,v:'soup',
+ ing:['猪肋排 500g','铁棍山药 300g','姜 5片','枸杞 1小把','盐 适量'],
+ steps:['排骨冷水下锅焯水，撇沫后捞出用温水冲净。',
+        '排骨与姜片入砂锅，加开水，大火烧开转小火炖 40 分钟。',
+        '山药去皮切段（戴手套），放入锅中再炖 20 分钟。',
+        '出锅前 5 分钟放枸杞。',
+        '最后加盐调味（早放盐肉会柴）。'],
+ tip:'秋季健脾汤品，汤清味鲜；山药后放避免炖化。'},
+{id:'t2',name:'番茄蛋花汤',cat:'soup',protein:'素',season:['spring','summer','autumn','winter'],heat:280,protein_g:18,fat_g:14,fiber_g:3,minutes:15,v:'soup',
+ ing:['番茄 2个','鸡蛋 3个','小葱 1根','香油 盐 淀粉'],
+ steps:['番茄去皮切小块，鸡蛋打散。',
+        '锅中少油炒番茄至出汁，加 4 碗开水煮 3 分钟。',
+        '用水淀粉勾极薄的芡（蛋花才能悬浮不沉）。',
+        '关小火，把蛋液从高处细线般淋入，静置 5 秒再搅。',
+        '加盐、淋香油，撒葱花出锅。'],
+ tip:'先勾薄芡再淋蛋液，蛋花才会漂亮成絮状。'},
+{id:'t3',name:'冬瓜丸子汤',cat:'soup',protein:'猪',season:['summer','autumn'],heat:420,protein_g:40,fat_g:22,fiber_g:4,minutes:30,v:'soup',
+ ing:['猪肉末 300g','冬瓜 400g','姜末 蛋清 淀粉 香菜 盐'],
+ steps:['肉末加姜末、蛋清、淀粉、盐和一点水，顺一个方向搅打上劲。',
+        '冬瓜去皮切薄片。',
+        '锅中水烧到微沸（不要大滚），用虎口挤出丸子下锅。',
+        '丸子浮起后撇去浮沫，加冬瓜片煮 5 分钟至透明。',
+        '加盐、白胡椒，撒香菜和葱花出锅。'],
+ tip:'水微沸时下丸子不易散；肉馅搅打上劲是弹嫩关键。'},
+{id:'t4',name:'莲藕花生汤',cat:'soup',protein:'素',season:['autumn','winter'],heat:380,protein_g:16,fat_g:12,fiber_g:8,minutes:70,v:'soup',
+ ing:['莲藕 400g','花生 80g','红枣 6颗','姜 2片','盐 少许'],
+ steps:['花生提前温水泡 1 小时，莲藕去皮切块。',
+        '所有材料放入锅中，加足量水。',
+        '大火烧开转小火煮 50 分钟至花生酥软。',
+        '加红枣再煮 10 分钟。',
+        '最后加少量盐提味（甜汤也可不加）。'],
+ tip:'秋季润燥素汤，清甜回甘；花生泡过后更易煮酥。'},
+{id:'t5',name:'白萝卜牛腩汤',cat:'soup',protein:'牛',season:['winter','autumn'],heat:640,protein_g:58,fat_g:34,fiber_g:6,minutes:90,v:'soup',
+ ing:['牛腩 500g','白萝卜 1根','姜 5片','香叶 2片','盐 白胡椒'],
+ steps:['牛腩切块冷水下锅焯水，冲净浮沫。',
+        '牛腩加姜片、香叶和开水，小火炖 50 分钟。',
+        '白萝卜去皮切滚刀块，入锅再炖 25 分钟。',
+        '挑出香叶，加盐和白胡椒调味。',
+        '撒香菜或葱花，趁热喝。'],
+ tip:'冬季暖身首选；萝卜后放才不会散。'},
+{id:'t6',name:'紫菜蛋花汤',cat:'soup',protein:'素',season:['spring','summer','autumn','winter'],heat:190,protein_g:16,fat_g:10,fiber_g:4,minutes:10,v:'soup',
+ ing:['紫菜 1小把','鸡蛋 3个','虾皮 1勺','葱花 香油 盐'],
+ steps:['紫菜撕小块，鸡蛋打散。',
+        '锅中水烧开，下虾皮和紫菜煮 2 分钟。',
+        '转小火，细线般淋入蛋液。',
+        '静置 5 秒后轻推，加盐调味。',
+        '淋香油、撒葱花出锅。'],
+ tip:'10 分钟就能上桌的救急汤；虾皮补钙，无需味精也鲜。'}
+];
+
+/* 四季常见蔬菜：仅用于判定"是否属于时令蔬菜"，不参与选菜过滤 */
+
+/* =========================================================================
+   三、插画层：每道菜生成一张内联 SVG（离线可用，无需图床）
+   ========================================================================= */
+let __uid = 0;
+function svgWrap(inner, a, b){
+  /* 每个插图使用独立 id，避免同一页面多个 SVG 互相抢占渐变定义 */
+  const uid = 'viz' + (++__uid) + '_' + Math.abs(inner.length * 31 + 7);
+  const gid = uid + 'a', vid = uid + 'b';
+  return `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img">
+  <defs>
+    <linearGradient id="${gid}" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0%" stop-color="${a}"/><stop offset="100%" stop-color="${b}"/>
+    </linearGradient>
+    <radialGradient id="${vid}" cx="50%" cy="42%" r="72%">
+      <stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#3A2A16" stop-opacity=".22"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="200" fill="url(#${gid})"/>
+  <ellipse cx="160" cy="206" rx="150" ry="26" fill="#000" opacity=".10"/>
+  ${inner}
+  <rect width="320" height="200" fill="url(#${vid})"/>
+  </svg>`;
+}
+/* 盘子 */
+const PLATE = `<ellipse cx="160" cy="112" rx="118" ry="66" fill="#FFFDF9" opacity=".92"/>
+<ellipse cx="160" cy="112" rx="118" ry="66" fill="none" stroke="#E7DCCB" stroke-width="2"/>
+<ellipse cx="160" cy="110" rx="96" ry="51" fill="#F7F1E6" opacity=".75"/>`;
+const BOWL = `<path d="M62 108 Q160 196 258 108 Z" fill="#FFFDF9" opacity=".95"/>
+<ellipse cx="160" cy="108" rx="98" ry="24" fill="#FBF5EA"/>
+<path d="M62 108 Q160 196 258 108" fill="none" stroke="#E7DCCB" stroke-width="2"/>
+<ellipse cx="160" cy="106" rx="80" ry="17" fill="#EFD9A8" opacity=".85"/>`;
+
+function herb(cx, cy){ // 点缀葱花
+  return `<g><circle cx="${cx}" cy="${cy}" r="3.2" fill="#5FA84E"/><circle cx="${cx+9}" cy="${cy+5}" r="3" fill="#6FB85C"/>
+  <circle cx="${cx-8}" cy="${cy+6}" r="2.6" fill="#4E9642"/></g>`;
+}
+function fishBody(cx, cy, s, c1, c2){
+  return `<g transform="translate(${cx},${cy}) scale(${s})">
+    <path d="M-72 0 C-56 -30 34 -30 58 0 C34 30 -56 30 -72 0 Z" fill="${c1}"/>
+    <path d="M58 0 L84 -20 L78 0 L84 20 Z" fill="${c2}"/>
+    <path d="M-10 -12 C6 -22 26 -18 34 -4" fill="none" stroke="${c2}" stroke-width="3" opacity=".7" stroke-linecap="round"/>
+    <path d="M-24 8 C-8 0 12 4 22 14" fill="none" stroke="${c2}" stroke-width="3" opacity=".5" stroke-linecap="round"/>
+    <circle cx="-30" cy="-7" r="4.6" fill="#2C2620"/><circle cx="-31.5" cy="-8.5" r="1.6" fill="#fff"/>
+  </g>`;
+}
+function renderVisual(d){
+  const v = d.v || 'mix';
+  const P = { fish:'#8FB8C9', fish2:'#6E9BB0', shrimp:'#F4A88C', shrimp2:'#E07A5F',
+    beef:'#C4764F', beef2:'#9C5636', pork:'#E8A089', pork2:'#C97A61', chicken:'#EFC98F', chicken2:'#D9A860',
+    lamb:'#CE8A72', lamb2:'#A9614A',
+    egg:'#FFD98A', egg2:'#F0B44E', leaf:'#7FB86A', leaf2:'#4F8A48', lotus:'#F0E3C8', lotus2:'#D8C49C',
+    pumpkin:'#F0A94E', pumpkin2:'#D2822E', yam:'#EDE3D2', yam2:'#D3C3A8', mushroom:'#C6A98A', mushroom2:'#9C7F62',
+    tofu:'#F5EEDC', tofu2:'#DFD2B8', pea:'#9CCB6E', pea2:'#74A94E', okra:'#8FBF5E', okra2:'#629140',
+    potato:'#EFD89B', potato2:'#CFAF66', bamboo:'#F2EAD3', bamboo2:'#D6C9A8', sprout:'#F4F0D8', sprout2:'#D8D2AE',
+    eggplant:'#B79BC8', eggplant2:'#8A6BA3', chestnut:'#C99A5E', chestnut2:'#9E7038', fungus:'#8A7A6A', fungus2:'#5E5145',
+    broccoli:'#8CC06A', broccoli2:'#5C9040', soup:'#F2D9A0', soup2:'#D9B267', mix:'#E3B87C', mix2:'#C08F53' };
+  const bg = { meat:['#FBE7DA','#F4D3BF'], veg:['#E9F3E1','#D3E7C6'], mix:['#FBF0DC','#F1DFC0'], soup:['#FDF3DC','#F4E2BC'] }[d.cat] || ['#F5EDE0','#E7DAC6'];
+  const c1 = P[v] || P.mix, c2 = P[v+'2'] || P.mix2;
+  const out = [PLATE];
+  const put = (x,y,s,body)=>out.push(`<g transform="translate(${x},${y}) scale(${s})">${body}</g>`);
+  const chunk = (w,h,c,rr)=>`<rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="${rr||4}" fill="${c}"/>`;
+  switch(v){
+    case 'fish':
+      out.push(fishBody(150,104,1.25,c1,c2));
+      put(232,86,.72,`<path d="M-26 0 A26 26 0 0 1 26 0 Z" fill="#F7C948"/><circle cx="-9" cy="-6" r="2" fill="#E0982C"/><circle cx="2" cy="-9" r="2" fill="#E0982C"/><circle cx="12" cy="-5" r="2" fill="#E0982C"/>`);
+      put(74,92,.55,chunk(30,20,'#7FB86A',6));
+      out.push('<path d="M40 128 q18 -6 36 0" stroke="#D9B267" stroke-width="3" fill="none" opacity=".6"/>');
+      out.push(herb(196,138));break;
+    case 'shrimp':
+      for(let i=0;i<6;i++){const x=84+i*30,y=96+(i%2?12:-8);put(x,y,.82,`
+        <path d="M-20 0 C-20 -15 12 -17 16 -2 C12 13 -18 13 -20 0 Z" fill="${c1}"/>
+        <path d="M-22 2 L-32 -8 L-30 6 Z" fill="${c2}"/>
+        <path d="M-10 -8 C0 -12 8 -8 10 -2" fill="none" stroke="${c2}" stroke-width="2.5"/>
+        <circle cx="-13" cy="-4" r="2.2" fill="#2C2620"/>`);}
+      put(240,130,.8,chunk(34,24,'#F4E3C0',5));
+      out.push(herb(64,140));break;
+    case 'beef':case 'pork':case 'chicken':case 'chestnut':case 'lamb':
+      for(let i=0;i<7;i++){const x=76+(i%4)*46,y=92+Math.floor(i/4)*34;
+        put(x,y,.95,chunk(38,28,c1,7));put(x,y,.95,`<path d="M-12 -2 C-2 -8 8 -4 12 2" stroke="${c2}" stroke-width="2.5" fill="none" opacity=".8"/>`);}
+      put(214,126,.8,chunk(28,22,'#7FB86A',6));
+      put(122,132,.75,chunk(24,18,'#E8A24E',6));
+      out.push(herb(86,134));break;
+    case 'egg':
+      put(96,100,1,`<ellipse rx="42" ry="30" fill="#FFD98A"/><ellipse rx="30" ry="20" fill="#FFE9AE"/>`);
+      put(158,116,1,`<ellipse rx="38" ry="27" fill="#FFCE6A"/><ellipse rx="26" ry="17" fill="#FFE6A0"/>`);
+      put(218,98,.9,`<ellipse rx="34" ry="25" fill="#FFD98A"/><ellipse rx="22" ry="15" fill="#FFEDBE"/>`);
+      put(150,132,.9,`<circle r="9" fill="#E2603F"/><path d="M-9 0 q9 -8 18 0" stroke="#639B47" stroke-width="3" fill="none"/>`);
+      out.push(herb(120,142));break;
+    case 'leaf':case 'sprout':
+      for(let i=0;i<9;i++){const x=70+((i*37)%180),y=88+((i*29)%46);
+        put(x,y,.7,`<path d="M0 -20 C18 -12 18 12 0 20 C-18 12 -18 -12 0 -20 Z" fill="${i%2?c1:c2}"/>
+          <path d="M0 -16 L0 16" stroke="#fff" stroke-width="1.4" opacity=".45"/>`);}
+      put(150,128,.9,chunk(30,20,'#F2E6C4',5));
+      out.push(herb(200,72));break;
+    case 'lotus':
+      for(let i=0;i<5;i++){const x=86+i*34,y=96+(i%2?14:-10);put(x,y,.95,`
+        <ellipse rx="17" ry="17" fill="${c1}" stroke="#D9C8A2" stroke-width="1.5"/>
+        <circle cx="-6" cy="-4" r="2.6" fill="#D9C8A2"/><circle cx="5" cy="-5" r="2.6" fill="#D9C8A2"/>
+        <circle cx="0" cy="4" r="2.6" fill="#D9C8A2"/><circle cx="9" cy="4" r="2.2" fill="#D9C8A2"/>`);}
+      put(230,124,.85,chunk(30,22,'#B06A46',6));
+      out.push(herb(70,140));break;
+    case 'pumpkin':case 'potato':case 'bamboo':case 'yam':
+      for(let i=0;i<8;i++){const x=74+(i%5)*44,y=92+Math.floor(i/5)*36;
+        out.push(`<g transform="translate(${x},${y})"><rect x="-19" y="-14" width="38" height="28" rx="6" fill="${i%2?c1:c2}"/>
+          <rect x="-19" y="-14" width="38" height="9" rx="5" fill="#fff" opacity=".22"/></g>`);}
+      put(228,130,.8,chunk(26,20,'#7FB86A',5));
+      out.push(herb(84,136));break;
+    case 'mushroom':
+      for(let i=0;i<6;i++){const x=82+(i%3)*52,y=92+Math.floor(i/3)*38;put(x,y,1,`
+        <ellipse rx="22" ry="14" fill="${c1}"/><rect x="-8" y="10" width="16" height="14" rx="4" fill="#F0E6D6"/>
+        <ellipse cx="-6" cy="-3" rx="6" ry="3.5" fill="#fff" opacity=".4"/>`);}
+      put(232,126,.85,chunk(30,22,'#C97A61',6));
+      out.push(herb(70,138));break;
+    case 'broccoli':
+      for(let i=0;i<4;i++){const x=90+i*46,y=100+(i%2?12:-10);
+        out.push(`<g transform="translate(${x},${y})"><rect x="-5" y="4" width="10" height="22" rx="4" fill="#9CC77A"/>
+          <circle cx="-11" cy="-4" r="12" fill="${c1}"/><circle cx="11" cy="-4" r="12" fill="${c1}"/><circle cx="0" cy="-13" r="12" fill="${c2}"/></g>`);}
+      put(226,132,.8,chunk(26,20,'#F0A94E',5));
+      out.push(herb(74,140));break;
+    case 'pea':
+      for(let i=0;i<9;i++){const x=76+((i*41)%176),y=90+((i*33)%44);
+        put(x,y,.85,`<ellipse rx="15" ry="9" fill="${c1}" transform="rotate(${(i*37)%180-90})"/>
+          <ellipse rx="7" ry="4" fill="#fff" opacity=".3"/>`);}
+      put(228,128,.85,chunk(28,20,'#C97A61',5));
+      out.push(herb(84,138));break;
+    case 'okra':
+      for(let i=0;i<6;i++){const x=90+(i%3)*48,y=96+Math.floor(i/3)*38;
+        out.push(`<g transform="translate(${x},${y}) rotate(${i%2?22:-18})">
+          <path d="M0 -24 C12 -14 12 14 0 24 C-12 14 -12 -14 0 -24 Z" fill="${i%2?c1:c2}"/>
+          <path d="M0 -18 L0 18" stroke="#fff" stroke-width="1.6" opacity=".4"/></g>`);}
+      put(232,132,.8,chunk(26,20,'#C97A61',5));
+      out.push(herb(72,72));break;
+    case 'eggplant':
+      for(let i=0;i<4;i++){const x=92+i*46,y=100+(i%2?10:-10);
+        out.push(`<g transform="translate(${x},${y}) rotate(70)">
+          <path d="M0 -26 C16 -16 16 16 0 26 C-16 16 -16 -16 0 -26 Z" fill="${c1}"/>
+          <ellipse rx="6" ry="9" fill="#fff" opacity=".22"/></g>`);}
+      put(228,130,.8,chunk(24,18,'#E8E2D0',5));
+      out.push(herb(76,136));break;
+    case 'fungus':
+      for(let i=0;i<10;i++){const x=74+((i*43)%180),y=88+((i*31)%48);
+        out.push(`<g transform="translate(${x},${y}) rotate(${(i*53)%180-90})">
+          <path d="M0 -13 C14 -10 14 10 0 13 C-14 10 -14 -10 0 -13 Z" fill="${i%2?c1:c2}"/></g>`);}
+      put(150,130,.9,chunk(34,20,'#7FB86A',5));
+      out.push(`<circle cx="212" cy="80" r="5" fill="#E2603F"/><circle cx="102" cy="140" r="4" fill="#E2603F"/>`);break;
+    case 'tofu':
+      for(let i=0;i<6;i++){const x=88+(i%3)*50,y=92+Math.floor(i/3)*38;
+        out.push(`<rect x="${x-21}" y="${y-16}" width="42" height="32" rx="5" fill="#F7F0DE" stroke="#E3D8BE" stroke-width="1.6"/>
+          <rect x="${x-21}" y="${y-16}" width="42" height="9" rx="4" fill="#fff" opacity=".5"/>`);}
+      put(230,130,.85,chunk(28,20,'#C97A61',6));
+      out.push(herb(74,140));break;
+    case 'soup':
+      out.push(BOWL);
+      out.push('<ellipse cx="160" cy="104" rx="74" ry="14" fill="#E8C77E" opacity=".8"/>');
+      put(132,100,.85,chunk(26,17,'#E8A24E',5));put(170,96,.8,chunk(22,15,'#7FB86A',5));
+      out.push(herb(196,100));
+      out.push(`<path d="M120 84 q-8 -14 2 -22" stroke="#fff" stroke-width="2.6" fill="none" opacity=".75" stroke-linecap="round"/>
+        <path d="M160 78 q-8 -14 2 -22" stroke="#fff" stroke-width="2.6" fill="none" opacity=".6" stroke-linecap="round"/>
+        <path d="M198 84 q-8 -14 2 -22" stroke="#fff" stroke-width="2.6" fill="none" opacity=".5" stroke-linecap="round"/>`);break;
+    default:
+      for(let i=0;i<6;i++){const x=86+(i%3)*50,y=94+Math.floor(i/3)*36;put(x,y,1,chunk(38,26,c1,7));}
+      out.push(herb(150,132));
+  }
+  return svgWrap(out.join('\n'), bg[0], bg[1]);
+}
+
+/* =========================================================================
+   四、规则引擎
+   ========================================================================= */
+const CAT_LABEL = {meat:'荤菜', veg:'素菜', mix:'半荤半素', soup:'汤'};
+const byId = id => DISHES.find(d=>d.id===id);
+
+function seasonVegs(season){
+  return SEASONS[season].veg;
+}
+/* 菜品在当季是否可用：season=null 表示四季皆可 */
+function inSeason(d, season){
+  if(!d.season) return true;
+  return d.season.includes(season);
+}
+/* 四季都常见的蔬菜：出现它们只能证明"能吃"，不能证明"当时令"，因此不算作当季时令 */
+const STAPLE_VEG = ['土豆','胡萝卜','木耳','香菇','西兰花','娃娃菜','小白菜','鸡蛋','豆腐','粉丝','彩椒','金针菇','杏鲍菇','大白菜','菠菜','油菜'];
+/* 素菜/半荤半素是否"当季时令"：季节命中，或 seasonal 名单与当季蔬菜有交集 */
+function isSeasonalVeg(d, season){
+  if(d.cat!=='veg' && d.cat!=='mix') return false;
+  if(d.season && d.season.includes(season)) return true;
+  if(d.seasonal && d.seasonal.length){
+    const list = seasonVegs(season);
+    return d.seasonal.some(x=>list.includes(x) && STAPLE_VEG.indexOf(x) < 0);
+  }
+  return false;
+}
+/* 羊肉仅在秋冬出现 */
+function lambAllowed(season){ return LAMB_SEASONS.includes(season); }
+
+function pick(pool, usedIds, rnd){
+  /* 池子可能因季节/猪肉限次被过滤空，逐级放宽，保证永远能选出一道 */
+  if(!pool || !pool.length) pool = DISHES.filter(d=>d.cat==='veg');
+  let cand = pool.filter(d=>!usedIds.has(d.id));
+  if(!cand.length) cand = pool;
+  return cand[Math.floor(rnd()*cand.length)];
+}
+function mulberry(seed){ let a=seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* 核心：生成一天的晚餐
+   规则：一荤 + 一素 + 半荤半素；无汤则再加一素（即两素）
+   荤菜优先鱼/虾/鸡/牛；羊按季；猪间或（含每周上限） */
+function makeMeal(date, season, usedIds, rnd, porkWeekUsed, opts={}){
+  const used = new Set(usedIds);
+  const meals = [];
+  const add = d => { meals.push(d); used.add(d.id); };
+  /* 本餐猪肉计数：必须实时统计，否则荤菜位、半荤位、汤位会各自放行一次猪肉 */
+  const porkInMeal = () => meals.filter(x=>x.protein==='猪').length;
+  const porkOk = () => (porkWeekUsed + porkInMeal()) < PORK_WEEKLY_LIMIT;
+
+  /* 1. 荤菜：先按结构权重抽蛋白类型 */
+  let meatPool = DISHES.filter(d=>d.cat==='meat' && inSeason(d, season));
+  if(!lambAllowed(season)) meatPool = meatPool.filter(d=>d.protein!=='羊');
+  if(!porkOk()) meatPool = meatPool.filter(d=>d.protein!=='猪');
+  /* 权重：鱼虾 3、鸡 3、牛 2.5、羊 1.5、猪 1 */
+  const weights = {鱼:3,虾:3,鸡:3,牛:2.5,羊:1.5,猪:1};
+  const pickWeighted = pool => {
+    if(!pool || !pool.length) pool = DISHES.filter(d=>d.cat==='meat');
+    const ok = pool.filter(d=>!used.has(d.id));
+    const src = ok.length ? ok : pool;
+    if(!src.length) return pick(DISHES.filter(d=>d.cat==='meat'), used, rnd);
+    const total = src.reduce((s,d)=>s+(weights[d.protein]||1),0);
+    let r = rnd()*total;
+    for(const d of src){ r -= (weights[d.protein]||1); if(r<=0) return d; }
+    return src[src.length-1];
+  };
+  add(pickWeighted(meatPool));
+
+  /* 2. 半荤半素（配菜同样优先当季） */
+  let mixPool = DISHES.filter(d=>d.cat==='mix' && inSeason(d, season));
+  if(!lambAllowed(season)) mixPool = mixPool.filter(d=>d.protein!=='羊');
+  if(!porkOk()) mixPool = mixPool.filter(d=>d.protein!=='猪');
+  add(pickSeasonal(mixPool, used, rnd, season));
+
+  /* 3. 是否配汤：约 55% 概率三菜一汤 */
+  const withSoup = rnd() < 0.55;
+  if(withSoup){
+    /* 汤若含猪肉，同样受每周限次约束 */
+    let soupPool = DISHES.filter(d=>d.cat==='soup' && inSeason(d, season));
+    if(!lambAllowed(season)) soupPool = soupPool.filter(d=>d.protein!=='羊');
+    if(!porkOk()) soupPool = soupPool.filter(d=>d.protein!=='猪');
+    add(pick(soupPool, used, rnd));
+    /* 三菜一汤：还需要一个素菜 → 一荤+一素+半荤+汤 = 4 样 */
+    const vegPool = DISHES.filter(d=>d.cat==='veg' && inSeason(d, season));
+    add(pickSeasonal(vegPool, used, rnd, season));
+  }else{
+    /* 无汤 → 4 样中的一素变成两素 */
+    const vegPool = DISHES.filter(d=>d.cat==='veg' && inSeason(d, season));
+    add(pickSeasonal(vegPool, used, rnd, season));
+    add(pickSeasonal(vegPool, used, rnd, season));
+  }
+  return {date, season, dishes:meals, withSoup};
+}
+/* 当季优先选择器：素菜与半荤半素共用
+   评分 = 菜名/食材中出现当季时令蔬菜的次数×2 + 1，出现越多权重越高 */
+function pickSeasonal(pool, used, rnd, season){
+  let src = (pool||[]).filter(d=>!used.has(d.id));
+  if(!src.length) src = (pool||[]).slice();
+  if(!src.length) src = DISHES.filter(d=>!used.has(d.id));
+  if(!src.length) src = DISHES.slice();
+  const list = seasonVegs(season);
+  const score = d => {
+    /* 明显非当季的菜品压到极低权重，仅作兜底，避免菜单里出现冬季的丝瓜 */
+    const w = ((d.season || []).includes(season) || isSeasonalVeg(d, season)) ? 1 : 0.15;
+    let s = 0;
+    const names = [d.name, ...(d.ing||[])].join('|');
+    list.forEach(v=>{ if(names.indexOf(v) >= 0) s += 2; });
+    return (s + 1) * w;
+  };
+  const total = src.reduce((a,d)=>a+score(d),0);
+  let r = rnd()*total;
+  for(const d of src){ r -= score(d); if(r<=0) return d; }
+  return src[src.length-1];
+}
+
+/* 生成一周：菜品尽量不重复；猪肉按周累计限次 */
+function makeWeek(startDate, seasonOverride){
+  const out = []; const used = new Set(); let porkUsed = 0;
+  const season = seasonOverride || seasonOf(startDate);
+  for(let i=0;i<7;i++){
+    const d = new Date(startDate.getTime()+i*86400000);
+    const m = makeMeal(d, season, used, mulberry(20260101 + i*977 + d.getDate()), porkUsed, {});
+    m.dishes.forEach(x=>{ if(x.protein==='猪') porkUsed++; });
+    m.dishes.forEach(x=>used.add(x.id));
+    out.push(m);
+  }
+  return out;
+}
+
+/* =========================================================================
+   五、营养与规则自检
+   ========================================================================= */
+function mealNutrition(meal){
+  const n = {heat:0,protein:0,fat:0,fiber:0};
+  meal.dishes.forEach(d=>{ n.heat+=d.heat; n.protein+=d.protein_g; n.fat+=d.fat_g; n.fiber+=d.fiber_g; });
+  return n;
+}
+function checkRules(meal, weekPork){
+  const c = {meat:0,veg:0,mix:0,soup:0}; meal.dishes.forEach(d=>c[d.cat]++);
+  const proteins = meal.dishes.map(d=>d.protein).filter(p=>['鱼','虾','鸡','牛','猪','羊'].includes(p));
+  /* 荤菜位的蛋白类型：取第一道荤菜，避免被汤或半荤"蒙过" */
+  const mainMeat = (meal.dishes.find(d=>d.cat==='meat') || {}).protein;
+  const seasonal = meal.dishes.filter(d=>(d.cat==='veg'||d.cat==='mix') && isSeasonalVeg(d, meal.season));
+  const n = mealNutrition(meal);
+  const lambOk = lambAllowed(meal.season) || !proteins.includes('羊');
+  const countOk = meal.dishes.length>=3 && meal.dishes.length<=4;
+  const structOk = c.meat>=1 && c.veg>=1 && c.mix>=1;
+  const vegEnough = meal.withSoup ? c.veg>=1 : c.veg>=2;
+  const porkInThisMeal = meal.dishes.filter(d=>d.protein==='猪').length;
+  const porkOk = porkInThisMeal <= 1 && (weekPork==null || weekPork <= PORK_WEEKLY_LIMIT);
+  return [
+    {t:'只安排晚餐', ok:true, d:meal.date.toLocaleDateString('zh-CN',{weekday:'long'})+' 晚餐 · 共 '+meal.dishes.length+' 样'},
+    {t:'每餐最多四样（三菜一汤或四菜）', ok:countOk, d:'本餐 '+meal.dishes.length+' 样菜'+(meal.withSoup?'（含 1 汤）':'（无汤，已加一素）')},
+    {t:'荤素搭配：一荤 + 一素 + 半荤半素', ok:structOk, d:`荤菜 ${c.meat} · 素菜 ${c.veg} · 半荤半素 ${c.mix}${c.soup?' · 汤 1':''}`},
+    {t:'无汤时增加一素', ok:vegEnough, d: meal.withSoup?'有汤，配 1 素':`无汤，配 ${c.veg} 素`},
+    {t:'素菜为当季时令蔬菜', ok:seasonal.length>0, d: seasonal.length? seasonal.map(d=>{
+        const hits = seasonVegs(meal.season).filter(v=>(d.seasonal||[]).includes(v));
+        return hits.length ? d.name+'（'+hits.join('/')+'）' : d.name;
+      }).join('、') : '—'},
+    {t:'荤菜以鱼、虾、鸡、牛为主', ok: !!mainMeat && ['鱼','虾','鸡','牛'].includes(mainMeat), d:'主荤：'+(mainMeat||'—')+'（全餐含 '+proteins.join('、')+'）'},
+    {t:'羊肉按季节安排', ok:lambOk, d: lambAllowed(meal.season)?('当季（'+SEASONS[meal.season].name+'）可安排羊肉'):'非羊肉季，未安排羊肉'},
+    {t:'猪肉间或安排（每周≤'+PORK_WEEKLY_LIMIT+'次）', ok:porkOk, d: weekPork==null? ('本餐猪肉 '+porkInThisMeal+' 道') : ('本周已用 '+weekPork+' 次（上限 '+PORK_WEEKLY_LIMIT+' 次）· 本餐 '+porkInThisMeal+' 道')},
+    {t:'营养均衡（4人份估算）', ok: n.protein>=60 && n.fiber>=6, d:`热量 ${n.heat} kcal · 蛋白 ${Math.round(n.protein)} g · 脂肪 ${Math.round(n.fat)} g · 膳食纤维 ${Math.round(n.fiber)} g`}
+  ];
+}
+
+/* =========================================================================
+   六、渲染
+   ========================================================================= */
+let STATE = { season: seasonOf(new Date()), today:null, week:[], tab:'today' };
+function el(id){return document.getElementById(id);}
+function toast(msg, onclick){
+  const t = el('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('on');
+  t.onclick = onclick ? () => { try{ onclick(); }catch(e){} t.classList.remove('on'); t.onclick = null; } : null;
+  if(t._timer) clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.classList.remove('on'); t.onclick = null; }, onclick ? 8000 : 1900);
+}
+
+function dishCard(d, mealIndex, pos, act, opts){
+  const o = opts || {};
+  const isWineDish = (typeof isWine === 'function') && isWine(d.id);
+  const pill = isWineDish ? `<span class="pill winepill">下酒菜</span>` : `<span class="pill ${d.cat}">${CAT_LABEL[d.cat] || '菜肴'}</span>`;
+  const off = !isWineDish && !inSeason(d, STATE.season);
+  const offTag = off ? `<span class="pill offpill">非当季</span>` : '';
+  const canSwap = mealIndex != null && pos != null;
+  const dataAttrs = canSwap ? ` data-meal="${mealIndex}" data-pos="${pos}"` : '';
+  const favBtn = o.fav ? `<button class="fav${FAVS.indexOf(d.id)>=0?' on':''}" data-fav="${d.id}" title="加入/移出家庭喜爱菜品库">${FAVS.indexOf(d.id)>=0?'★':'☆'}</button>` : '';
+  const delBtn = o.delable ? `<button class="fav del" data-unfav="${d.id}" title="移除">✕</button>` : '';
+  const wineDelBtn = o.winedel ? `<button class="fav del" data-delwine="${d.id}" title="从下酒菜品库删除">✕</button>` : '';
+  const dishDelBtn = o.dishdel ? `<button class="fav del" data-dishdel="${d.id}" title="从菜品库删除">✕</button>` : '';
+  return `<div class="dish${off?' off':''}" data-dish="${d.id}"${dataAttrs} tabindex="0" title="点击查看图片与经典做法">
+    <span class="thumb">${renderVisual(d)}</span>
+    <span class="dishinfo">
+      <span class="nm">${esc(d.name)}</span>
+      <span class="sub">${pill}<span class="pill">${d.protein}</span><span>${d.minutes} 分钟</span>${offTag}</span>
+    </span>
+    ${canSwap?`<span class="dishact"><button class="replace" data-replace="${act?act:mealIndex+':'+pos}" title="换一道同类型的菜">换一道</button>${favBtn}${delBtn}${wineDelBtn}${dishDelBtn}</span>`
+      :(o.fav||o.delable||o.winedel||o.dishdel)?`<span class="dishact">${favBtn}${delBtn}${wineDelBtn}${dishDelBtn}</span>`:''}
+  </div>`;
+}
+function mealCard(meal, tagText, isToday, idx){
+  const n = mealNutrition(meal);
+  const dateStr = meal.date.toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit',weekday:'short'});
+  const isWeekend = [0,6].includes(meal.date.getDay());
+  return `<section class="meal ${isToday?'today':''}">
+    <div class="mealhead">
+      <div>
+        <h3>${dateStr} 晚餐 ${isWeekend?'<span class="tag green">周末</span>':''}</h3>
+        <div class="meta">${meal.dishes.length} 样 · ${meal.withSoup?'三菜一汤':'四菜（无汤加一素）'}</div>
+      </div>
+      ${tagText?`<span class="tag ${isToday?'today':''}">${tagText}</span>`:''}
+    </div>
+    <div class="mealbody">${meal.dishes.map((d,i)=>dishCard(d, idx, i, null, {fav:true})).join('')}</div>
+    <div class="mealnut">
+      <span>热量 <b>${n.heat}</b> kcal</span><span>蛋白 <b>${Math.round(n.protein)}</b> g</span>
+      <span>脂肪 <b>${Math.round(n.fat)}</b> g</span><span>纤维 <b>${Math.round(n.fiber)}</b> g</span>
+    </div>
+  </section>`;
+}
+/* 菜品统一查找：普通菜品 + 下酒菜（含用户自建） */
+function isWine(id){ return /^w\d/.test(String(id)) || /^u/.test(String(id)); }
+function dishById(id){
+  const d = byId(id);
+  if(d) return d;
+  const c = findCustom(id);
+  if(c) return c;
+  return (typeof findWine === 'function') ? findWine(id) : null;
+}
+function switchView(t){
+  STATE.tab = t;
+  const map = {today:'viewToday', week:'viewWeek', party:'viewParty', fav:'viewFav', wine:'viewWine', rules:'viewRules', lib:'viewLib'};
+  Object.keys(map).forEach(k=>{
+    const v = el(map[k]);
+    if(v) v.style.display = (k===t) ? '' : 'none';
+  });
+}
+/* =========================================================================
+   六之二、下酒菜 & 家庭喜爱菜品库（localStorage 持久化）
+   ========================================================================= */
+const LS_FAV = 'dinner_fav_v1', LS_WINE = 'dinner_wine_v1', LS_DISH = 'dinner_dish_v1';
+function lsGet(k, dv){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : dv; }catch(e){ return dv; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+let FAVS = lsGet(LS_FAV, []);
+let WINE_DISHES = lsGet(LS_WINE, []);
+let CUSTOM_DISHES = lsGet(LS_DISH, []);
+if(!Array.isArray(FAVS)) FAVS = [];
+if(!Array.isArray(WINE_DISHES)) WINE_DISHES = [];
+if(!Array.isArray(CUSTOM_DISHES)) CUSTOM_DISHES = [];
+
+/* 预设下酒菜：经典冷盘、热炒、卤味、汤羹，共 16 道 */
+const WINE_PRESET = [
+  {id:'w01',name:'凉拌木耳',protein:'素',cat:'veg',minutes:15,v:'fungus',heat:130,protein_g:5,fat_g:7,fiber_g:9,ing:['干木耳 30g','小米椒 2个','香菜 2根','蒜末 香醋 生抽 香油'],steps:['木耳冷水泡发 2 小时（勿用热水），撕小朵。','沸水焯 3 分钟，捞出过冰水保持脆爽。','调汁：蒜末、香醋 3 勺、生抽 2 勺、香油 1 勺、少许糖盐。','拌匀后加小米椒圈和香菜段，冷藏 15 分钟更入味。'],tip:'木耳必须冷水慢泡；泡发超过 8 小时不可食用。',flavor:'酸辣爽脆，解腻开胃'},
+  {id:'w02',name:'拍黄瓜',protein:'素',cat:'veg',minutes:10,v:'pea',heat:120,protein_g:5,fat_g:8,fiber_g:5,ing:['黄瓜 3根','蒜 4瓣','香醋 2勺','生抽 1勺','香油 1勺'],steps:['黄瓜拍裂切段，撒盐腌 5 分钟后倒掉水分。','蒜拍末，与香醋、生抽、香油、少许糖调汁。','拌匀冷藏 10 分钟，撒熟芝麻上桌。'],tip:'拍比切更吸味；腌出的水一定要倒掉，否则出汤。',flavor:'清爽脆口，最下酒'},
+  {id:'w03',name:'凉拌海带丝',protein:'素',cat:'veg',minutes:15,v:'leaf',heat:140,protein_g:6,fat_g:7,fiber_g:8,ing:['海带丝 300g','蒜末 小米椒 香醋 生抽 辣椒油'],steps:['海带丝洗净，沸水焯 3 分钟（去腥软化）。','捞出过冰水，充分沥干。','加蒜末、小米椒、香醋 3 勺、生抽 2 勺、辣椒油 1 勺。','拌匀静置 10 分钟入味。'],tip:'焯后过冰水才脆；海带自带咸味，生抽少放。',flavor:'咸鲜微辣'},
+  {id:'w04',name:'香菜拌牛肉',protein:'牛',cat:'meat',minutes:25,v:'beef',heat:320,protein_g:42,fat_g:16,fiber_g:2,ing:['卤牛腱 300g','香菜 1把','蒜末 生抽 香醋 辣椒油 花椒油'],steps:['卤牛腱逆纹切薄片（卤制可买现成）。','香菜切段，与牛肉拌匀。','调汁：蒜末、生抽 2 勺、香醋 1 勺、辣椒油 1 勺、花椒油几滴。','浇汁拌匀，静置 5 分钟。'],tip:'牛肉逆纹切才不塞牙；花椒油是灵魂。',flavor:'麻辣鲜香，配白酒极佳'},
+  {id:'w05',name:'卤水拼盘',protein:'牛',cat:'meat',minutes:90,v:'beef',heat:420,protein_g:48,fat_g:22,fiber_g:2,ing:['牛腱 400g','鸡爪 6只','卤料包 1个','生抽 老抽 冰糖 姜 葱'],steps:['牛腱与鸡爪冷水下锅焯水，冲净。','锅中加卤料包、生抽 4 勺、老抽 1 勺、冰糖、姜葱与水。','小火卤 60 分钟，关火浸泡 30 分钟（泡比卤更入味）。','捞出放凉切件拼盘，淋少许卤汁。'],tip:'卤完浸泡半小时，颜色与味道才透。',flavor:'卤香浓郁，越嚼越香'},
+  {id:'w06',name:'油炸花生米',protein:'素',cat:'veg',minutes:12,v:'pea',heat:280,protein_g:12,fat_g:22,fiber_g:4,ing:['花生米 300g','盐 少许','花椒 10粒'],steps:['花生米洗净沥干（一定擦干，防溅油）。','冷油下锅，小火慢炸，听到密集噼啪声即捞出。','趁热撒盐，余温会继续变脆。','放凉后食用，可撒花椒粉。'],tip:'冷油小火、听声出锅；凉了才脆。',flavor:'酥香咸脆，下酒第一菜'},
+  {id:'w07',name:'盐水毛豆',protein:'素',cat:'veg',minutes:20,v:'pea',heat:150,protein_g:11,fat_g:6,fiber_g:6,ing:['毛豆 500g','八角 2个','花椒 10粒','盐 2勺'],steps:['毛豆剪去两端（更易入味），洗净。','水中加八角、花椒、盐烧开，下毛豆煮 8 分钟。','关火浸泡 20 分钟再捞（泡着才咸香）。','沥干装盘，可冷藏后食用。'],tip:'煮完不要马上捞，泡着更入味。',flavor:'咸香清鲜'},
+  {id:'w08',name:'香卤鸭脖',protein:'猪',cat:'meat',minutes:70,v:'pork',heat:380,protein_g:34,fat_g:22,fiber_g:2,ing:['鸭脖 600g','干辣椒 10个','花椒 1勺','生抽 老抽 冰糖 桂皮 香叶'],steps:['鸭脖冷水下锅焯水，冲净。','锅中炒香干辣椒、花椒、桂皮、香叶。','加生抽 3 勺、老抽 1 勺、冰糖和水，小火卤 45 分钟。','关火浸泡 20 分钟，捞出切段。'],tip:'卤味靠浸泡上色入味；爱吃辣可加倍干辣椒。',flavor:'麻辣卤香，越啃越上瘾'},
+  {id:'w09',name:'铁板鱿鱼',protein:'鱼',cat:'meat',minutes:20,v:'fish',heat:260,protein_g:36,fat_g:10,fiber_g:2,ing:['鱿鱼 500g','洋葱 半个','孜然 辣椒面 蒜蓉辣酱 生抽'],steps:['鱿鱼处理干净，切条或打花刀。','沸水焯 30 秒立刻捞出（久煮变硬）。','热锅多油，下洋葱炒香，放鱿鱼大火快炒 1 分钟。','加蒜蓉辣酱、生抽、孜然和辣椒面，翻匀出锅。'],tip:'焯水只要 30 秒；大火快炒保持弹牙。',flavor:'香辣弹牙，烧烤味十足'},
+  {id:'w10',name:'酱牛肉',protein:'牛',cat:'meat',minutes:120,v:'beef',heat:400,protein_g:52,fat_g:18,fiber_g:1,ing:['牛腱子 800g','黄豆酱 2勺','生抽 老抽 冰糖 八角 桂皮 香叶 姜'],steps:['牛腱切大块，冷水浸泡 1 小时去血水。','冷水下锅焯水，撇沫冲净。','加黄豆酱、生抽、老抽、冰糖、香料与水，小火酱 90 分钟。','关火浸泡 2 小时以上，冷藏后切薄片。'],tip:'冷藏后更好切薄片；泡的时间越长越入味。',flavor:'酱香醇厚，佐酒上品'},
+  {id:'w11',name:'蒜蓉粉丝蒸虾',protein:'虾',cat:'meat',minutes:22,v:'shrimp',heat:350,protein_g:40,fat_g:12,fiber_g:1,ing:['鲜虾 500g','粉丝 1把','蒜 1头','蒸鱼豉油 2勺','小米椒'],steps:['粉丝泡软铺盘底，虾开背去虾线摆上。','蒜一半炸成金蒜，与生蒜混合，铺在虾背。','水开后大火蒸 6 分钟。','淋蒸鱼豉油、浇热油，撒葱花与小米椒。'],tip:'金蒜+生蒜混合最香；蒸 6 分钟即可。',flavor:'蒜香鲜美'},
+  {id:'w12',name:'孜然鸡翅',protein:'鸡',cat:'meat',minutes:30,v:'chicken',heat:380,protein_g:44,fat_g:22,fiber_g:1,ing:['鸡中翅 600g','孜然粒 2勺','辣椒面 1勺','生抽 蚝油 蒜末'],steps:['鸡翅两面划刀，加生抽、蚝油、蒜末腌 30 分钟。','平底锅少油，中小火煎至两面金黄（各 5 分钟）。','撒孜然粒和辣椒面，翻匀再煎 2 分钟。','出锅前再撒一层孜然增香。'],tip:'划刀更入味；孜然分两次放香气更足。',flavor:'孜然浓香，啤酒绝配'},
+  {id:'w13',name:'椒盐小黄鱼',protein:'鱼',cat:'meat',minutes:25,v:'fish',heat:340,protein_g:38,fat_g:20,fiber_g:1,ing:['小黄鱼 500g','椒盐 2勺','淀粉 3勺','料酒 姜'],steps:['小黄鱼处理干净，用料酒姜片腌 15 分钟，擦干。','两面拍薄淀粉。','油温六成热下锅，中小火炸至金黄捞出。','升高油温复炸 20 秒更酥，撒椒盐。'],tip:'复炸是酥脆关键；一定要擦干再拍粉。',flavor:'外酥里嫩，椒香扑鼻'},
+  {id:'w14',name:'凉拌猪耳朵',protein:'猪',cat:'meat',minutes:120,v:'pork',heat:300,protein_g:28,fat_g:18,fiber_g:2,ing:['猪耳朵 2只','卤料包 1个','蒜末 香醋 生抽 辣椒油 香菜'],steps:['猪耳处理干净，冷水下锅焯水。','加卤料包与生抽卤 60 分钟，捞出放凉。','切细条，加蒜末、香醋、生抽、辣椒油。','撒香菜与熟芝麻拌匀。'],tip:'放凉再切才不碎，口感更脆。',flavor:'脆爽麻辣，胶原满满'},
+  {id:'w15',name:'麻辣鸭胗',protein:'猪',cat:'meat',minutes:45,v:'pork',heat:280,protein_g:34,fat_g:10,fiber_g:1,ing:['鸭胗 500g','干辣椒 花椒 蒜 生抽 辣椒油 香菜'],steps:['鸭胗洗净去筋膜，冷水下锅加姜料酒煮 25 分钟。','捞出放凉切薄片。','热油爆香干辣椒和花椒，浇在鸭胗上。','加蒜末、生抽、辣椒油、香菜拌匀。'],tip:'煮后放凉再切，片薄才脆。',flavor:'麻辣脆爽'},
+  {id:'w16',name:'酸辣汤',protein:'素',cat:'veg',minutes:20,v:'soup',heat:180,protein_g:12,fat_g:8,fiber_g:3,ing:['豆腐丝 100g','木耳丝 50g','鸡蛋 1个','香醋 白胡椒 生抽 淀粉'],steps:['锅中加水烧开，下豆腐丝、木耳丝煮 3 分钟。','加生抽、盐，用水淀粉勾薄芡。','淋入蛋液成蛋花，关火。','加香醋 2 勺和白胡椒粉，撒香菜。'],tip:'醋和白胡椒最后放，酸辣味才冲。',flavor:'酸辣醒酒，暖胃收尾'}
+];
+function getWineList(){ return WINE_PRESET.concat(WINE_DISHES); }
+function findWine(id){ return getWineList().filter(d=>d.id===id)[0]; }
+/* 下酒菜是否属于用户自建（据此显示 ✕ 并可删除；不依赖标记字段，兼容旧数据） */
+function findWineCustom(id){ return WINE_DISHES.filter(d=>d.id===id)[0]; }
+/* 全部菜品 = 预设 + 用户自建 */
+function allDishes(){ return DISHES.concat(CUSTOM_DISHES); }
+function findCustom(id){ return CUSTOM_DISHES.filter(d=>d.id===id)[0]; }
+
+/* 收藏与下酒菜库操作 */
+function toggleFav(id){
+  const i = FAVS.indexOf(id);
+  if(i >= 0) FAVS.splice(i,1); else FAVS.push(id);
+  lsSet(LS_FAV, FAVS);
+  refreshFavUI();
+  const d = dishById(id);
+  toast(i>=0 ? ('已移出喜爱库：'+(d?d.name:id)) : ('已加入喜爱库：'+(d?d.name:id)));
+}
+function refreshFavUI(){
+  try{ renderLib(); }catch(e){}
+  try{ renderFav(); }catch(e){}
+  try{ renderWine(); }catch(e){}
+}
+function renderFav(){
+  const box = el('favGrid'); if(!box) return;
+  const list = FAVS.map(id=>dishById(id)).filter(Boolean);
+  box.innerHTML = list.length
+    ? list.map(d=>dishCard(d, null, null, null, {fav:true, delable:true})).join('')
+    : `<div class="holiday">喜爱库还是空的。去「菜品库」或任一菜单里点菜品右侧的 <b>☆</b> 就能加进来。</div>`;
+}
+function renderWine(){
+  const box = el('wineGrid'); if(!box) return;
+  const preset = WINE_PRESET.map(d=>dishCard(d, null, null, null, {fav:true})).join('');
+  const mine = WINE_DISHES.map(d=>dishCard(d, null, null, null, {fav:true, winedel:true})).join('');
+  box.className = 'meals';
+  box.innerHTML = preset + mine
+    + (WINE_DISHES.length ? '' : `<div class="holiday" style="grid-column:1/-1">以上为预设下酒菜（不可删除）。在下方输入菜名即可添加你自己的下酒菜，添加后卡片会带 <b>✕</b> 可删除。</div>`);
+}
+function addWine(){
+  const nEl = el('wineName'), iEl = el('wineIng');
+  const name = (nEl && nEl.value || '').trim();
+  if(!name){ toast('请先输入菜名'); return; }
+  if(getWineList().some(d=>d.name===name)){ toast('已经有这道菜了'); return; }
+  const ing = (iEl && iEl.value || '').trim();
+  const nd = {
+    id:'u'+Date.now().toString(36),
+    name:name, protein:'荤', cat:'mix', minutes:20, v:'mix',
+    heat:300, protein_g:28, fat_g:18, fiber_g:2,
+    ing: ing ? [ing].concat(['蒜末 生抽 香醋 辣椒油 香菜 适量']) : ['主料 适量','蒜末 生抽 香醋 辣椒油 香菜 适量'],
+    steps:['主料处理干净，按需要焯水、煮熟或煎熟，沥干放凉。','加入蒜末、生抽、香醋、辣椒油等调味料拌匀。','静置 10 分钟入味，撒香菜或熟芝麻即可上桌。'],
+    tip:'下酒菜讲究"一脆二香三入味"：食材务必沥干，调味后静置片刻再吃。',
+    flavor:'自定义下酒菜',
+    custom:true
+  };
+  WINE_DISHES.push(nd);
+  lsSet(LS_WINE, WINE_DISHES);
+  if(nEl) nEl.value = ''; if(iEl) iEl.value = '';
+  renderWine();
+  toast('已添加下酒菜：'+name);
+}
+/* =========================================================================
+   菜品库：在线查做法 + 粘贴解析 + 添加 / 删除自建菜品
+   ========================================================================= */
+/* 说明：本地单文件页面无法直接抓取第三方菜谱站（会被浏览器 CORS 拦截），
+   因此采用"一键打开搜索 → 粘回内容 → 自动解析保存"的可靠方案。 */
+let _PASTE = {ing:'', steps:[], src:'', url:''};
+function makeSearchUrl(name){
+  const q = encodeURIComponent(name + ' 做法 步骤');
+  return 'https://www.bing.com/search?q=' + q;
+}
+function searchRecipeOnline(){
+  const nEl = el('dishName');
+  const name = ((nEl && nEl.value) || '').trim();
+  if(!name){ toast('请先输入菜名，再去搜索'); if(nEl) nEl.focus(); return; }
+  const url = makeSearchUrl(name);
+  let opened = null;
+  try{ opened = window.open(url, '_blank', 'noopener'); }catch(e){}
+  const row = el('dishPasteRow');
+  if(row) row.style.display = '';
+  const src = el('dishSourceBox');
+  if(src){
+    src.style.display = '';
+    src.innerHTML = `已打开搜索：<b>${esc(name)} 做法 步骤</b><br>
+      <span style="color:var(--ink3)">如果浏览器没弹出新标签，请手动打开：<a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></span><br>
+      <b>下一步</b>：在搜索页里把做法整段复制，粘到下面输入框 → 点「解析并填入」→ 点「＋ 添加菜品」保存到本机。`;
+  }
+  const ta = el('dishPaste');
+  if(ta){
+    ta.placeholder = '把「'+name+'」的做法整段粘到这里（支持 1. 2. 3. 编号，或"食材："开头）\n然后点右边「解析并填入」';
+    ta.focus();
+  }
+  toast(opened ? '已打开搜索页，请复制做法粘回来' : '搜索页被浏览器拦截，请手动点页面里的链接');
+  /* 应用内自动补充：维基百科简介（允许跨域），失败则静默 */
+  wikiLookup(name);
+}
+/* 应用内自动查询（维基百科开放 API 支持跨域，其它菜谱站会被浏览器 CORS 拦截） */
+function wikiLookup(name){
+  if(typeof fetch !== 'function') return;
+  const box = el('dishSourceBox');
+  const q = encodeURIComponent(name);
+  fetch('https://zh.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&exintro=1&explaintext=1&redirects=1&titles='+q)
+    .then(r=>r.json())
+    .then(j=>{
+      const pages = j && j.query && j.query.pages;
+      if(!pages) return;
+      const k = Object.keys(pages)[0];
+      const ex = pages[k] && pages[k].extract;
+      if(ex && box){
+        const short = ex.replace(/\s+/g,' ').slice(0,260);
+        box.style.display = '';
+        box.innerHTML += `<div style="margin-top:8px">📖 <b>百科简介</b>：${esc(short)}…</div>`;
+      }
+    })
+    .catch(()=>{});
+}
+function parsePastedRecipe(txt){
+  const lines = String(txt||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  let ing = '', steps = [], src = '';
+  lines.forEach(line=>{
+    const t = line.replace(/^[-*•·\s]+/, '');
+    const ingM = t.match(/^(食材|用料|原料|主料|配料|材料)\s*[:：]?\s*(.+)$/);
+    if(ingM){ ing = ingM[2]; return; }
+    const tag = t.match(/^(来源|出处|作者|链接|网址)\s*[:：]?\s*(.+)$/);
+    if(tag){ src = tag[2]; return; }
+    const st = t.replace(/^(\d+[\.\)、）]|[一二三四五六七八九十]+[、\.\)]|第[一二三四五六七八九十]+步[:：]?)\s*/, '').trim();
+    if(!st) return;
+    if(/^(https?:\/\/|www\.)/i.test(st)){ src = st; return; }
+    steps.push(st);
+  });
+  /* 若没有显式"食材:"行，则把第一个短句当作食材 */
+  if(!ing && steps.length && steps[0].length <= 40 && steps.length > 1){ ing = steps.shift(); }
+  return {ing:ing, steps:steps.slice(0, 12), src:src};
+}
+function usePasted(){
+  const pa = el('dishPaste');
+  const txt = (pa && pa.value || '').trim();
+  if(!txt){ toast('请先粘贴做法内容'); if(pa) pa.focus(); return; }
+  const r = parsePastedRecipe(txt);
+  const nEl = el('dishName');
+  const name = ((nEl && nEl.value) || '').trim() || '自建菜品';
+  const box = el('dishSourceBox');
+  if(!r.steps.length){
+    if(box){
+      box.style.display = '';
+      box.innerHTML = `⚠️ 没能从粘贴内容里识别出做法步骤（共读取 ${txt.length} 个字符）。<br>
+        <span style="color:var(--ink3)">请把做法按行粘贴，每行一步并带编号，例如：</span>
+        <pre style="white-space:pre-wrap;margin:8px 0 0;font-size:12px">1. 番茄去皮切块
+2. 鸡蛋打散炒熟盛出
+3. 炒番茄出汁后倒回鸡蛋，调味出锅</pre>`;
+    }
+    toast('没识别出步骤：请按「1. … 2. …」分行粘贴');
+    return;
+  }
+  _PASTE = {ing:r.ing, steps:r.steps, src:r.src || '在线查询', url:makeSearchUrl(name)};
+  if(box){
+    box.style.display = '';
+    box.innerHTML = `✅ 已解析 <b>${r.steps.length}</b> 步做法${r.ing?(' · 食材：<b>'+esc(r.ing)+'</b>'):''}${r.src?(' · 来源：'+esc(r.src)):''}<br>
+      <b>下一步</b>：点「⑤ ＋ 添加到菜品库」即保存到本机。`;
+  }
+  const wrap = el('dishPreviewWrap');
+  if(wrap){
+    wrap.style.display = '';
+    wrap.innerHTML = `<div class="holiday"><b>做法预览</b><ol class="steps" style="margin-top:6px">${r.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>`;
+  }
+  toast('已解析 '+r.steps.length+' 步做法，点「⑤ ＋ 添加到菜品库」保存');
+}
+
+const DEF_STEPS = {
+  meat:['主料处理干净，按需要焯水去腥或腌制入味。','热锅下油，主料煎炒至变色定型。','加调料与少量水，烧焖至熟透入味。','大火收汁，装盘即可。'],
+  veg:['蔬菜择洗干净，切成合适大小，沥干水分。','热锅下油，爆香蒜末等小料。','大火快炒至断生，保持翠绿脆嫩。','加盐调味，出锅前可淋少许香油。'],
+  mix:['荤料切片或切丝，加调料与淀粉腌制 15 分钟。','素料洗净切好备用。','先炒荤料至变色盛出，再炒素料至断生。','倒回荤料，调味翻匀，大火收汁出锅。'],
+  soup:['主料处理干净，切块备用。','锅中加足量水（或高汤）烧开，下主料。','中小火煮至主料软熟。','加盐调味，撒葱花或香菜，趁热上桌。']
+};
+function addDish(){
+  const nEl = el('dishName'), cEl = el('dishCat'), iEl = el('dishIng');
+  const name = ((nEl && nEl.value) || '').trim();
+  if(!name){ toast('请先输入菜名'); return; }
+  if(allDishes().some(d=>d.name===name) || getWineList().some(d=>d.name===name)){ toast('已经有这道菜了'); return; }
+  const cat = (cEl && cEl.value) || 'meat';
+  const ingInput = ((iEl && iEl.value) || '').trim() || (_PASTE.ing || '').trim();
+  const pEl = el('dishProtein');
+  const chosen = (pEl && pEl.value) || '牛';
+  /* 分类决定主料：素菜固定为"素"，荤菜/半荤/汤沿用所选主料 */
+  const protein = (cat==='veg') ? '素' : chosen;
+  const CAT_NUT = {meat:{heat:420,protein_g:38,fat_g:24,fiber_g:2}, veg:{heat:180,protein_g:7,fat_g:9,fiber_g:7}, mix:{heat:480,protein_g:32,fat_g:26,fiber_g:4}, soup:{heat:260,protein_g:18,fat_g:12,fiber_g:3}};
+  const V = {meat:'chicken', veg:'leaf', mix:'egg', soup:'soup'};
+  const nut = CAT_NUT[cat] || CAT_NUT.mix;
+  const nd = {
+    id:'c'+Date.now().toString(36),
+    name:name, cat:cat, protein:protein, season:null,
+    heat:nut.heat, protein_g:nut.protein_g, fat_g:nut.fat_g, fiber_g:nut.fiber_g,
+    minutes:20, v:V[cat] || 'mix',
+    ing: ingInput ? ingInput.split(/[，,、;；]/).map(s=>s.trim()).filter(Boolean) : ['主料 适量','调味料 适量'],
+    steps: (_PASTE.steps && _PASTE.steps.length) ? _PASTE.steps.slice() : (DEF_STEPS[cat] || DEF_STEPS.mix).slice(),
+    tip: (_PASTE.steps && _PASTE.steps.length)
+      ? '做法来自在线查询（'+(_PASTE.src||'网络')+'），可根据自家口味微调用量。'
+      : '这是你自己添加的菜品，做法步骤可在心中按家常习惯微调；点卡片可随时查看。',
+    source: (_PASTE.steps && _PASTE.steps.length) ? (_PASTE.src || '在线查询') : '自制',
+    sourceUrl: (_PASTE.steps && _PASTE.steps.length) ? (_PASTE.url || makeSearchUrl(name)) : '',
+    savedAt: new Date().toISOString().slice(0,10),
+    custom:true
+  };
+  CUSTOM_DISHES.push(nd);
+  lsSet(LS_DISH, CUSTOM_DISHES);
+  if(nEl) nEl.value = ''; if(iEl) iEl.value = '';
+  const pa = el('dishPaste'); if(pa) pa.value = '';
+  const pv = el('dishPreviewWrap'); if(pv){ pv.style.display = 'none'; pv.innerHTML = ''; }
+  const sb = el('dishSourceBox'); if(sb){ sb.style.display = 'none'; sb.innerHTML = ''; }
+  _PASTE = {ing:'', steps:[], src:'', url:''};
+  LIB_CAT = cat;
+  renderLib();
+  toast('已添加菜品：'+name);
+}
+/* 待撤销缓冲：删除后 8 秒内可一键恢复（避免依赖 window.confirm） */
+let PENDING = {kind:null, data:null};
+function pushUndo(kind, data){ PENDING = {kind:kind, data:data}; }
+function undoSettings(){
+  if(PENDING.kind==='dish'){
+    CUSTOM_DISHES.push(PENDING.data);
+    lsSet(LS_DISH, CUSTOM_DISHES);
+    renderLib(); renderFav();
+    toast('已恢复菜品：'+PENDING.data.name);
+  }else if(PENDING.kind==='wine'){
+    WINE_DISHES.push(PENDING.data);
+    lsSet(LS_WINE, WINE_DISHES);
+    renderWine(); renderFav();
+    toast('已恢复下酒菜：'+PENDING.data.name);
+  }else{
+    toast('没有可恢复的删除');
+    return;
+  }
+  PENDING = {kind:null, data:null};
+}
+
+function delDish(id){
+  const d = findCustom(id);
+  if(!d){ toast('预设菜品不可删除'); return; }
+  CUSTOM_DISHES = CUSTOM_DISHES.filter(x=>x.id!==id);
+  lsSet(LS_DISH, CUSTOM_DISHES);
+  const f = FAVS.indexOf(id);
+  if(f>=0){ FAVS.splice(f,1); lsSet(LS_FAV, FAVS); }
+  pushUndo('dish', d);
+  renderLib(); renderFav();
+  toast('已删除菜品：'+d.name+'（点此撤销）', undoSettings);
+}
+
+function delWine(id){
+  const d = findWine(id);
+  if(!d) return;
+  /* 判定依据：是否在"自建下酒菜"表里（不依赖标记字段，兼容旧数据） */
+  if(!WINE_DISHES.some(x=>x.id===id)){ toast('预设下酒菜不可删除'); return; }
+  WINE_DISHES = WINE_DISHES.filter(x=>x.id!==id);
+  lsSet(LS_WINE, WINE_DISHES);
+  const f = FAVS.indexOf(id);
+  if(f>=0){ FAVS.splice(f,1); lsSet(LS_FAV, FAVS); }
+  pushUndo('wine', d);
+  renderWine(); renderFav();
+  toast('已删除下酒菜：'+d.name+'（点此撤销）', undoSettings);
+}
+/* 聚会套餐：移出本桌的下酒菜（不影响下酒菜库） */
+function removePartyWine(id){
+  if(!BN.cur || !BN.cur.wines) return;
+  BN.cur.wines = BN.cur.wines.filter(x=>x!==id);
+  renderParty();
+  toast('已移出本桌');
+}
+
+/* 聚会套餐：增加 1–2 道下酒菜 */
+let PICKWINE = {open:false, max:2, sel:[]};
+let PICKDISH = {filter:''};
+/* 从菜品库选择菜品加入下酒菜库 */
+function openDishPicker(){
+  PICKDISH = {filter:''};
+  drawDishPicker();
+}
+function dishPickerCandidates(){
+  const kw = (PICKDISH.filter || '').trim().toLowerCase();
+  return allDishes().filter(d=>{
+    if(findWineCustom(d.id)) return false;             /* 已在下酒菜库的跳过 */
+    if(kw && d.name.toLowerCase().indexOf(kw) < 0) return false;
+    return true;
+  });
+}
+function drawDishPicker(){
+  const box = el('modal2box'); if(!box) return;
+  const list = dishPickerCandidates();
+  const shown = list.slice(0, 36);
+  box.innerHTML = `
+    <div class="body" style="padding:20px 22px 24px">
+      <h3 style="margin:0 0 6px;font-size:18px">🍽 从菜品库选择下酒菜</h3>
+      <div class="sub" style="color:var(--ink3);font-size:12.5px;margin-bottom:12px">共 ${list.length} 道可选 · 点「加入」即成为下酒菜（原菜品不受影响）</div>
+      <input id="pickDishKwd" class="txt" style="width:100%;margin-bottom:12px" placeholder="搜索菜名，例如：牛肉 / 木耳" value="${esc(PICKDISH.filter||'')}">
+      <div class="wines">
+        ${shown.length ? shown.map(d=>`<div class="wine-item"><span class="thumb">${renderVisual(d)}</span><span class="wi-t"><span class="nm">${esc(d.name)}</span><span class="sub">${CAT_LABEL[d.cat]||'菜肴'} · ${d.minutes} 分钟</span></span><button class="primary" data-pickdish="${d.id}">加入</button></div>`).join('')
+          : '<div class="holiday" style="grid-column:1/-1">没有匹配的菜品，换个关键词试试。</div>'}
+      </div>
+      ${list.length > shown.length ? `<div class="hint" style="margin-top:10px">还有 ${list.length - shown.length} 道未显示，可用上方搜索缩小范围。</div>` : ''}
+      <div class="controls" style="margin-top:18px;justify-content:flex-end"><button id="pickDishClose">完成</button></div>
+    </div>`;
+  el('modal2wine').classList.add('on');
+  bindDishPicker();
+}
+function bindDishPicker(){
+  const box = el('modal2box'); if(!box) return;
+  const kw = el('pickDishKwd');
+  if(kw){
+    kw.oninput = function(){
+      PICKDISH.filter = kw.value;
+      const list = dishPickerCandidates();
+      /* 只重绘列表区，避免输入框失焦 */
+      const wrap = box.querySelector('.wines');
+      if(wrap) wrap.innerHTML = list.slice(0,36).map(d=>`<div class="wine-item"><span class="thumb">${renderVisual(d)}</span><span class="wi-t"><span class="nm">${esc(d.name)}</span><span class="sub">${CAT_LABEL[d.cat]||'菜肴'} · ${d.minutes} 分钟</span></span><button class="primary" data-pickdish="${d.id}">加入</button></div>`).join('')
+        || '<div class="holiday" style="grid-column:1/-1">没有匹配的菜品，换个关键词试试。</div>';
+    };
+  }
+  box.onclick = e => {
+    if(e.target.id==='pickDishClose') closeWinePick();
+  };
+  el('modal2wine').onclick = e => { if(e.target.id==='modal2wine') closeWinePick(); };
+}
+function pickDishAsWine(id){
+  const d = dishById(id);
+  if(!d){ toast('找不到该菜品'); return; }
+  if(findWineCustom(id) || getWineList().some(x=>x.name===d.name)){ toast('「'+d.name+'」已在下酒菜库里'); return; }
+  const nd = JSON.parse(JSON.stringify(d));
+  nd.id = 'u' + Date.now().toString(36);
+  nd.custom = true;
+  nd.flavor = nd.flavor || ('菜品库 · ' + (CAT_LABEL[d.cat] || '菜肴'));
+  WINE_DISHES.push(nd);
+  lsSet(LS_WINE, WINE_DISHES);
+  toast('已加入下酒菜：'+nd.name);
+  if(typeof drawDishPicker === 'function' && el('modal2wine').classList.contains('on')) drawDishPicker();
+  renderWine();
+}
+function openWinePick(addN){
+  /* addN = 本次要新增的道数；上限 = 已有 + addN，已有项预置为已选 */
+  const cur = (BN.cur && BN.cur.wines) ? BN.cur.wines.slice() : [];
+  PICKWINE = {open:true, max: cur.length + Math.max(1, addN||1), sel: cur.slice()};
+  drawWinePick();
+}
+function drawWinePick(){
+  const box = el('modal2box'); if(!box) return;
+  const list = getWineList();
+  const sel = PICKWINE.sel;
+  box.innerHTML = `
+    <div class="body" style="padding:20px 22px 24px">
+      <h3 style="margin:0 0 6px;font-size:18px">🍶 增加下酒菜</h3>
+      <div class="sub" style="color:var(--ink3);font-size:12.5px;margin-bottom:14px">本桌最多可加 <b>${PICKWINE.max}</b> 道下酒菜 · 已选 <b>${sel.length}</b> 道（下酒菜不计入套餐菜数与体检）</div>
+      ${sel.length?`<div class="winepic">${sel.map(id=>{const d=findWine(id);if(!d)return '';return `<span class="wd"><span class="thumb">${renderVisual(d)}</span><span><span class="nm">${esc(d.name)}</span><br><span class="pill">已选</span></span></span>`;}).join('')}</div>`:''}
+      <div class="wines" style="margin-top:14px">
+        ${list.map(d=>`<div class="wine-item"><span class="thumb">${renderVisual(d)}</span><span class="wi-t"><span class="nm">${esc(d.name)}</span><span class="sub">${esc(d.flavor||'')}</span></span><button class="${sel.indexOf(d.id)>=0?'':'primary'}" data-wineadd="${d.id}" ${sel.length>=PICKWINE.max&&sel.indexOf(d.id)<0?'disabled style="opacity:.45"':''}>${sel.indexOf(d.id)>=0?'✓ 已选':'加入'}</button></div>`).join('')}
+      </div>
+      <div class="controls" style="margin-top:18px;justify-content:flex-end">
+        <button id="winepickDone" class="primary" ${sel.length?'':'disabled style="opacity:.5"'}>完成（${sel.length}）</button>
+        <button id="winepickCancel">取消</button>
+      </div>
+    </div>`;
+  el('modal2wine').classList.add('on');
+  bindWinePick();
+}
+function bindWinePick(){
+  const box = el('modal2box'); if(!box) return;
+  box.onclick = e => {
+    const ab = e.target.closest('[data-wineadd]');
+    if(ab){
+      const id = ab.dataset.wineadd;
+      const i = PICKWINE.sel.indexOf(id);
+      if(i>=0) PICKWINE.sel.splice(i,1);
+      else if(PICKWINE.sel.length < PICKWINE.max) PICKWINE.sel.push(id);
+      drawWinePick(); bindWinePick();
+      return;
+    }
+    if(e.target.id==='winepickDone'){ applyWinePick(); return; }
+    if(e.target.id==='winepickCancel'){ closeWinePick(); return; }
+  };
+  el('modal2wine').onclick = e => { if(e.target.id==='modal2wine') closeWinePick(); };
+}
+function closeWinePick(){ PICKWINE.open = false; el('modal2wine').classList.remove('on'); }
+function applyWinePick(){
+  if(!BN.cur){ toast('请先选择一个聚会套餐'); closeWinePick(); return; }
+  BN.cur.wines = [...new Set([...(BN.cur.wines||[]), ...PICKWINE.sel])];
+  closeWinePick();
+  renderParty();
+  toast('已加入 '+BN.cur.wines.length+' 道下酒菜');
+}
+
+function renderToday(){
+  const m = STATE.today;
+  /* 今晚在周菜单中的真实索引：不硬编码 0，避免 STATE.today 与 STATE.week[0] 不同步时换错餐 */
+  const idx = (typeof STATE.week.indexOf === 'function') ? STATE.week.indexOf(m) : -1;
+  el('tonight').innerHTML = mealCard(m, '今晚', true, idx >= 0 ? idx : 0);
+  el('todayHint').textContent = `${SEASONS[STATE.season].name}时令 · ${['周日','周一','周二','周三','周四','周五','周六'][m.date.getDay()]} · 一荤一素一半荤半素${m.withSoup?' + 一汤':' + 加一素'}`;
+  /* 规则自检（带上本周猪肉用量，让限次违规可见） */
+  const weekPork = STATE.week.slice(1).flatMap(m=>m.dishes).filter(d=>d.protein==='猪').length;
+  el('ruleChecks').innerHTML = checkRules(m, weekPork).map(r=>`
+    <div class="rule"><div class="rt"><span class="${r.ok?'ok':''}">${r.ok?'✔':'—'}</span>${r.t}</div>
+    <div class="rd">${r.d}</div></div>`).join('');
+  const sn = el('seasonalNote');
+  sn.innerHTML = `<b>${SEASONS[STATE.season].icon} ${SEASONS[STATE.season].name}食养：</b>${SEASONS[STATE.season].note}<br>
+    <span style="color:#9C9186">本季当令蔬菜：${seasonVegs(STATE.season).join(' · ')}</span>`;
+}
+function renderWeek(){
+  el('weekMeals').innerHTML = STATE.week.map((m,i)=>mealCard(m, i===0?'今天':'', i===0, i)).join('');
+}
+let LIB_CAT = 'meat';   /* 记住菜品库当前分类，收藏重绘时不跳回荤菜 */
+function renderLib(){
+  const cats = [['meat','荤菜'],['veg','素菜'],['mix','半荤半素'],['soup','汤']];  el('libTabs').innerHTML = cats.map(([k,v])=>`<button data-lib="${k}" class="${k===LIB_CAT?'on':''}">${v}</button>`).join('');
+  const draw = k => { LIB_CAT = k; el('libGrid').innerHTML =
+    allDishes().filter(d=>d.cat===k).map(d=>dishCard(d, null, null, null, {fav:true, dishdel:!!findCustom(d.id)})).join(''); };
+  draw(LIB_CAT);
+  el('libTabs').onclick = e => {
+    const b = e.target.closest('button[data-lib]'); if(!b) return;
+    [...el('libTabs').children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    draw(b.dataset.lib);
+  };
+}
+/* 详情弹窗 */
+let CURDISH = null;
+function openDish(id, mealIndex, pos){
+  const d = dishById(id); if(!d) return;
+  CURDISH = (mealIndex!=null && pos!=null) ? {id:d.id, mealIndex:mealIndex, pos:pos} : null;
+  const seasonName = SEASONS[STATE.season].name;
+  const seasonTag = (!d.season) ? '四季皆宜'
+    : (d.season.includes(STATE.season) ? seasonName+'时令' : '非当季（'+d.season.map(s=>SEASONS[s].name).join('/')+'）');
+  const hasSwap = CURDISH && findSwaps(mealIndex, pos).list.length > 0;
+  const swapBtn = CURDISH ? `<button class="primary" id="mreplace" ${hasSwap?'':'disabled style="opacity:.45;cursor:not-allowed"'}>🔁 换一道同类型菜</button>` : '';
+  el('modal').innerHTML = `
+    <div class="hero">${renderVisual(d)}<button class="close" id="mclose">✕</button></div>
+    <div class="body">
+      <h3>${esc(d.name)}</h3>
+      <div class="sub">
+        <span class="pill ${isWine(d.id)?'winepill':d.cat}">${isWine(d.id)?'下酒菜':(CAT_LABEL[d.cat]||'菜肴')}</span>
+        <span class="pill">${d.protein==='素'?'纯素':d.protein}</span>
+        <span class="pill">${seasonTag}</span>
+        <span class="pill">约 ${d.minutes} 分钟</span>
+      </div>
+      <div class="nutri">
+        <div><b>${d.heat}</b><small>千卡 kcal</small></div>
+        <div><b>${d.protein_g}</b><small>蛋白质 g</small></div>
+        <div><b>${d.fat_g}</b><small>脂肪 g</small></div>
+        <div><b>${d.fiber_g}</b><small>纤维 g</small></div>
+      </div>
+      <div class="sec"><h4>所需食材（4 人份）</h4><div class="ing">${d.ing.map(x=>`<span>${esc(x)}</span>`).join('')}</div></div>
+      <div class="sec"><h4>经典做法</h4><ol class="steps">${d.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>
+      ${d.tip?`<div class="tip">💡 <b>关键诀窍：</b>${d.tip}</div>`:''}
+      ${(d.custom && d.source)?`<div class="tip" style="background:#F7F2E9;border-color:#E7DCCB;color:var(--ink2)">📌 做法来源：<b>${esc(d.source)}</b>${d.savedAt?(' · 保存于 '+esc(d.savedAt)):''}${d.sourceUrl?` · <a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener">再查一次</a>`:''}</div>`:''}
+      ${swapBtn?`<div style="margin-top:18px">${swapBtn}</div>`:''}
+    </div>`;
+  el('mask').classList.add('on');
+  el('mclose').onclick = closeModal;
+  const mr = el('mreplace');
+  if(mr && hasSwap) mr.onclick = () => replaceDish(CURDISH.mealIndex, CURDISH.pos);
+}
+function closeModal(){ el('mask').classList.remove('on'); }
+
+/* =========================================================================
+   六之二、同类替换
+   规则：只在同一 cat 内替换（荤菜↔荤菜、素菜↔素菜、半荤半素↔半荤半素、汤↔汤）；
+        荤菜再尽量保持同一蛋白类型（鱼换鱼、虾换虾…），并继续遵守
+        当季时令、羊肉季节、猪肉每周限次。
+   ========================================================================= */
+function findSwaps(mealIndex, pos){
+  /* 今晚以 STATE.today 为准；两者同一对象时等价于 STATE.week[0] */
+  const meal = (mealIndex===0 && STATE.today) ? STATE.today : STATE.week[mealIndex];
+  if(!meal) return {list:[], used:new Set()};
+  const cur = meal.dishes[pos];
+  if(!cur) return {list:[], used:new Set()};
+
+  /* 本周其他餐次已用的菜（用于避免重复），本餐其他菜也算 */
+  const used = new Set();
+  STATE.week.forEach((m,mi)=>m.dishes.forEach((d,di)=>{
+    if(mi===mealIndex && di===pos) return;
+    used.add(d.id);
+  }));
+
+  let cand = DISHES.filter(d=>d.cat===cur.cat && d.id!==cur.id);
+  if(cur.cat==='meat'){
+    if(!lambAllowed(meal.season)) cand = cand.filter(d=>d.protein!=='羊');
+    const same = cand.filter(d=>d.protein===cur.protein);
+    if(same.length) cand = same;           /* 优先同类蛋白：鱼换鱼、虾换虾 */
+  }
+  if(!cand.length) cand = DISHES.filter(d=>d.cat===cur.cat && d.id!==cur.id);
+
+  /* 猪肉限次：把"当前这道"从本周计数中剔除后再判断 */
+  const porkWeek = STATE.week.flatMap(m=>m.dishes).filter(d=>d.protein==='猪').length
+                 - (cur.protein==='猪' ? 1 : 0);
+  if(porkWeek >= PORK_WEEKLY_LIMIT){
+    const noPork = cand.filter(d=>d.protein!=='猪');
+    if(noPork.length) cand = noPork;
+  }
+  return {list:cand, used:used, cur:cur, season:meal.season};
+}
+
+function replaceDish(mealIndex, pos){
+  const sw = findSwaps(mealIndex, pos);
+  if(!sw.list.length){ toast('没有可替换的同类菜品'); return; }
+  /* 优先没用过的、当季的；再在同分组内随机，避免每次都换到同一道 */
+  const fresh = sw.list.filter(d=>!sw.used.has(d.id));
+  /* 优先在本周未用过的同类菜里挑；已用完则明确告知，绝不替换成本餐已有的菜 */
+  if(!fresh.length){
+    toast('同类的新菜品已用完，换不了新花样了');
+    return;
+  }
+  const pool = fresh;
+  const scored = pool.map(d=>({d, s:(inSeason(d, sw.season)?2:0)+(isSeasonalVeg(d, sw.season)?3:0)+Math.random()}));
+  scored.sort((a,b)=>b.s-a.s);
+  const top = scored.slice(0, 5);
+  const pickd = top[Math.floor(Math.random()*top.length)].d;
+
+  STATE.week[mealIndex].dishes[pos] = pickd;
+  if(mealIndex === 0 && STATE.today !== STATE.week[0]) STATE.today = STATE.week[0];
+  renderWeek(); renderToday(); closeModal();
+  toast('已换成「'+pickd.name+'」');
+}
+
+/* =========================================================================
+   七、事件与初始化
+   ========================================================================= */
+/* =========================================================================
+   六之三、节假日家庭聚会套餐
+   四档：六菜一汤 / 七菜一汤 / 八菜一汤 / 九菜一汤
+   每档固定：1 道素菜（当季时令）+ 1 道半荤半素，其余以荤菜为主
+   其余规则照旧：鱼虾鸡牛为主、羊肉按季、猪肉至多 1 道、同类不重复
+   ========================================================================= */
+const PKGS = [
+  {n:6, name:'六菜一汤', tag:'4–6 人 · 轻松家宴'},
+  {n:7, name:'七菜一汤', tag:'6–8 人 · 标准家宴'},
+  {n:8, name:'八菜一汤', tag:'8–10 人 · 丰盛聚餐'},
+  {n:9, name:'九菜一汤', tag:'10 人以上 · 大团圆'}
+];
+let BN = {cur:null, sets:{}};
+const HOSTMEAT = {鱼:6, 虾:6, 鸡:5, 牛:5, 羊:3, 猪:2};   /* 聚会硬菜权重：鱼虾鸡牛优先 */
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* 档位口径：N 菜一汤 = N 道菜 + 1 道汤 = N+1 样
+   荤菜道数 = N - 1素 - 1半荤半素（如六菜一汤 → 4 道荤菜 + 1素 + 1半荤 + 1汤 = 7 样） */
+function bnMeatCount(n){ return n - 2; }
+function highlightTab(t){
+  [...el('tabs').children].forEach(x=>x.classList.toggle('on', x.dataset.t===t));
+}
+function bnPorkUsed(dishes, exceptId){
+  return (dishes||[]).filter(d=>d.protein==='猪' && d.id!==exceptId).length;
+}
+
+/* 生成 N 菜一汤：结构固定为 1 素 + 1 半荤半素 + (N-2) 荤 + 1 汤 */
+function buildPartyPackage(n, seed){
+  const season = STATE.season;
+  const rnd = mulberry(seed || 20261001);
+  const used = [];
+  const has = d => used.some(x=>x.id===d.id);
+  const add = d => { used.push(d); return d; };
+
+  /* 荤菜类别登记表：半荤半素与荤菜共用，必须在使用前声明（const 无提升） */
+  const proteinUsed = {};
+  let methodUsed = {};
+  const porkCap = 1;   /* 聚会每桌猪肉至多 1 道 */
+  let meatAdded = 0;
+  let replacedByVeg = 0;
+
+  /* 数量口径（N 菜一汤 = N+1 样）：
+     1素 + 1半荤 + (N-2)荤 = N 道 → 加 1 汤 = N+1 样
+     某季荤菜类别不足 (N-2) 时，用当季素菜补位，总数仍保持 N+1 */
+
+  /* 1. 素菜：当季时令优先 */
+  const vegPool = DISHES.filter(d=>d.cat==='veg' && inSeason(d, season));
+  add(pickSeasonal(vegPool.length?vegPool:DISHES.filter(d=>d.cat==='veg'), new Set(), rnd, season));
+
+  /* 2. 半荤半素：当季配菜优先 */
+  const mixPool = DISHES.filter(d=>d.cat==='mix' && inSeason(d, season));
+  add(pickSeasonal(mixPool.length?mixPool:DISHES.filter(d=>d.cat==='mix'), new Set(used.map(d=>d.id)), rnd, season));
+  const mixDish = used[used.length-1];
+  if(mixDish) proteinUsed[mixDish.protein] = 1;   /* 半荤半素用掉的主料也不得重复 */
+
+  /* 3. 荤菜：同类主料不重复（鱼、虾、鸡、牛、羊、猪 各至多 1 道）
+        若当季可用的荤菜类别不够（如春夏无羊肉，只有 5 类），
+        则用当季素菜补足总菜数，绝不重复荤菜类别。 */
+  const meatCount = bnMeatCount(n);
+  let meatPool = DISHES.filter(d=>d.cat==='meat' && inSeason(d, season));
+  if(!lambAllowed(season)) meatPool = meatPool.filter(d=>d.protein!=='羊');
+  if(!meatPool.length) meatPool = DISHES.filter(d=>d.cat==='meat');
+  const methodsOf = d => (d.steps||[]).join('|');
+  const overlap = (a,b) => {
+    const k = ['蒸','炒','炖','烧','煎','焖','爆','拌','灼','煮','炸','烤'];
+    const A = k.filter(x=>a.indexOf(x)>=0), B = k.filter(x=>b.indexOf(x)>=0);
+    return A.some(x=>B.indexOf(x)>=0);
+  };
+  for(let i=0;i<meatCount;i++){
+    /* 严格去重：荤菜类别用过就不再选 */
+    let cand = meatPool.filter(d=>!has(d) && !proteinUsed[d.protein]);
+    const noPork = cand.filter(d=>d.protein!=='猪');
+    if(bnPorkUsed(used) >= porkCap && noPork.length) cand = noPork;
+    if(!cand.length) break;        /* 类别用尽 → 余下位置用当季素菜补 */
+    const scored = cand.map(d=>{
+      let s = (HOSTMEAT[d.protein]||1) * 1.0;
+      const recent = Object.values(methodUsed).join('|');
+      if(!overlap(methodsOf(d), recent)) s += 2;      /* 烹饪方式尽量不重复 */
+      if(meatAdded < 2 && ['鱼','虾','牛','羊'].indexOf(d.protein)>=0) s += 2;  /* 头两道做硬菜 */
+      if(bnPorkUsed(used) >= porkCap && d.protein==='猪') s -= 9;               /* 猪肉压到最低 */
+      s += rnd()*0.9;
+      return {d, s};
+    });
+    scored.sort((a,b)=>b.s-a.s);
+    const top = scored.slice(0, 3);
+    const pickd = top[Math.floor(rnd()*top.length)].d;
+    proteinUsed[pickd.protein] = (proteinUsed[pickd.protein]||0) + 1;
+    methodUsed[pickd.id] = methodsOf(pickd);
+    add(pickd);
+    meatAdded++;
+  }
+
+  /* 3.5 荤菜类别用尽时，用当季素菜补足总数（绝不重复荤菜类别） */
+  let attempts = 0;
+  while(used.length < n && attempts < 14){
+    attempts++;
+    let vp = DISHES.filter(d=>d.cat==='veg' && inSeason(d, season) && !used.some(x=>x.id===d.id));
+    if(!vp.length) vp = DISHES.filter(d=>d.cat==='veg' && !used.some(x=>x.id===d.id));
+    if(!vp.length) break;
+    add(pickSeasonal(vp, new Set(used.map(d=>d.id)), rnd, season));
+    replacedByVeg++;
+  }
+
+  /* 4. 汤：聚会取料足一些的（按食材条目数优先） */
+  let soupPool = DISHES.filter(d=>d.cat==='soup' && inSeason(d, season));
+  if(!lambAllowed(season)) soupPool = soupPool.filter(d=>d.protein!=='羊');
+  /* 猪肉至多 1 道（含半荤半素在内），若已占满则汤也不选猪肉 */
+  if(bnPorkUsed(used) >= porkCap){
+    const noPorkSoup = soupPool.filter(d=>d.protein!=='猪');
+    if(noPorkSoup.length) soupPool = noPorkSoup;
+  }
+  const beforeUnique = soupPool.filter(d=>!has(d));
+  let soupCand = beforeUnique.length ? beforeUnique : (soupPool.length?soupPool:DISHES.filter(d=>d.cat==='soup'));
+  /* 汤的荤主料也不与桌上其他荤菜类别重复（素汤 / 素主料不受限） */
+  const soupOk = soupCand.filter(d=>d.protein==='素' || !proteinUsed[d.protein]);
+  if(soupOk.length) soupCand = soupOk;
+  const soups = soupCand.slice().sort((a,b)=>(b.ing||[]).length-(a.ing||[]).length);
+  const soupTop = soups.slice(0, Math.max(2, Math.ceil(soups.length/2)));
+  add(soupTop[Math.floor(rnd()*soupTop.length)]);
+
+  return {n:n, name:(PKGS.find(p=>p.n===n)||{}).name || (n+'菜一汤'), dishes:used, season:season,
+          replacedByVeg:replacedByVeg, meatAdded:meatAdded};
+}
+
+/* 聚会餐的营养与规则体检 */
+function checkParty(pkg){
+  const c = {meat:0, veg:0, mix:0, soup:0};
+  pkg.dishes.forEach(d=>c[d.cat]++);
+  const n = pkg.dishes.reduce((a,d)=>({heat:a.heat+d.heat, protein:a.protein+d.protein_g, fat:a.fat+d.fat_g, fiber:a.fiber+d.fiber_g}), {heat:0,protein:0,fat:0,fiber:0});
+  /* 整桌荤类主料（荤菜 + 半荤半素 + 含荤汤），用于"荤菜类别不重复"的完整校验 */
+  const allProteins = pkg.dishes.filter(d=>d.cat!=='veg' && d.protein!=='素').map(d=>d.protein);
+  const uniqAll = [...new Set(allProteins)];
+  const noProteinDup = uniqAll.length === allProteins.length;   /* 核心硬约束 */
+  const porkN = pkg.dishes.filter(d=>d.protein==='猪').length;
+  const seasonal = pkg.dishes.filter(d=>(d.cat==='veg'||d.cat==='mix') && isSeasonalVeg(d, pkg.season));
+  const allVegSeasonal = pkg.dishes.filter(d=>d.cat==='veg').every(d=>isSeasonalVeg(d, pkg.season));
+  /* 荤菜位主料（用于"以鱼虾鸡牛为主"的判定） */
+  const proteins = pkg.dishes.filter(d=>d.cat==='meat').map(d=>d.protein);
+  const uniqProtein = [...new Set(proteins)];
+  const mainOk = proteins.filter(p=>['鱼','虾','鸡','牛'].indexOf(p)>=0).length >= Math.max(2, Math.ceil(proteins.length/2));
+  const extraVeg = pkg.replacedByVeg || 0;
+  /* 期望素菜数 = 基础 1 道 + 补位数 */
+  const expectedVeg = 1 + (pkg.replacedByVeg || 0);
+  const vegNames = pkg.dishes.filter(d=>d.cat==='veg').map(d=>d.name);
+  return {
+    c:c, n:n, allProteins:allProteins, porkN:porkN, seasonal:seasonal,
+    noProteinDup:noProteinDup, extraVeg:extraVeg,
+    rows:[
+      {t:'档位：'+pkg.name, ok:pkg.dishes.length===pkg.n+1, d:'共 '+pkg.dishes.length+' 样（'+pkg.n+' 菜 + 1 汤）'},
+      {t:'荤菜类别不重复', ok:noProteinDup, d: allProteins.length? ('全桌荤类主料 '+allProteins.length+' 项：'+allProteins.join('、')+(noProteinDup?'（无重复）':'（有重复！）')) : '—'},
+      {t:'1 道素菜 + 1 道半荤半素' + (extraVeg? '（另有 '+extraVeg+' 道补位素菜）':''),
+       ok:c.mix===1 && c.veg>=1 && c.veg===expectedVeg,
+       d:'素菜 '+c.veg+'（'+vegNames.join('、')+'）· 半荤半素 '+c.mix + (extraVeg? ' · 因荤菜类别用尽，补位 '+extraVeg+' 道当季素菜' : '')},
+      {t:'其余以荤菜为主', ok:c.meat>=pkg.n-2-extraVeg-1 && c.meat>=c.veg, d:'荤菜 '+c.meat+' 道'+(extraVeg?'（'+extraVeg+' 个位置由当季素菜补位）':'')+' · 素菜 '+c.veg+' 道'},
+      {t:'荤菜以鱼、虾、鸡、牛为主', ok:mainOk, d:'主料：'+(uniqProtein.join('、')||'—')},
+      {t:'素菜为当季时令', ok:allVegSeasonal && seasonal.length>0, d: seasonal.length? seasonal.map(d=>d.name).join('、') : '—'},
+      {t:'猪肉至多 1 道', ok:porkN<=1, d:'猪肉 '+porkN+' 道'},
+      {t:'羊肉按季节安排', ok:lambAllowed(pkg.season) || proteins.indexOf('羊')<0, d: lambAllowed(pkg.season)?'当季可安排':'非当季未安排'},
+      {t:'营养均衡（整桌估算）', ok:n.protein>=pkg.n*15 && n.fiber>=pkg.n*1.3, d:'热量 '+Math.round(n.heat)+' kcal · 蛋白 '+Math.round(n.protein)+' g · 脂肪 '+Math.round(n.fat)+' g · 纤维 '+Math.round(n.fiber)+' g'}
+    ]
+  };
+}
+
+/* 聚会套餐的同类替换 */
+function findPartySwaps(pos){
+  const pkg = BN.cur; if(!pkg) return {list:[], used:new Set()};
+  const cur = pkg.dishes[pos]; if(!cur) return {list:[], used:new Set()};
+  const used = new Set(pkg.dishes.filter((d,i)=>i!==pos).map(d=>d.id));
+  /* 荤菜：本套餐已用的类别不得再出现（含半荤半素用掉的主料） */
+  const usedProteins = pkg.dishes.filter((d,i)=>i!==pos && d.cat!=='veg' && d.protein!=='素').map(d=>d.protein);
+  /* 同类候选：素菜/半荤/汤优先当季；荤菜保持类别不重复，并优先当季同主料 */
+  const base = DISHES.filter(d=>d.cat===cur.cat && d.id!==cur.id && !used.has(d.id));
+  let cand = base.filter(d=>inSeason(d, pkg.season));
+  if(!cand.length) cand = base;
+  if(cur.cat==='meat'){
+    if(!lambAllowed(pkg.season)) cand = cand.filter(d=>d.protein!=='羊');
+    /* 先限定"类别不重复"，再在其中优先同主料 */
+    const noDup = cand.filter(d=>usedProteins.indexOf(d.protein)<0);
+    const pool = noDup.length ? noDup : cand;
+    const same = pool.filter(d=>d.protein===cur.protein);
+    cand = same.length ? same : pool;
+  }
+  if(cur.cat!=='veg'){
+    /* 整桌主料不重复：荤菜、半荤半素都受约束（"素"主料不限） */
+    const noDup = cand.filter(d=>d.protein==='素' || usedProteins.indexOf(d.protein)<0);
+    if(noDup.length) cand = noDup;
+  }
+  if(bnPorkUsed(pkg.dishes, cur.id) >= 1){
+    const noPork = cand.filter(d=>d.protein!=='猪');
+    if(noPork.length) cand = noPork;
+  }
+  if(!cand.length) cand = DISHES.filter(d=>d.cat===cur.cat && d.id!==cur.id);
+  return {list:cand, used:used, cur:cur, season:pkg.season};
+}
+function replacePartyDish(pos){
+  const sw = findPartySwaps(pos);
+  if(!sw.list.length){ toast('没有可替换的同类菜品'); return; }
+  const fresh = sw.list.filter(d=>!sw.used.has(d.id));
+  if(!fresh.length){ toast('同类的新菜品已用完'); return; }
+  try{
+    const scored = fresh.map(d=>({d, s:(inSeason(d, sw.season)?2:0)+(isSeasonalVeg(d, sw.season)?3:0)+Math.random()}));
+    scored.sort((a,b)=>b.s-a.s);
+    const top = scored.slice(0,5);
+    const pickd = top[Math.floor(Math.random()*top.length)].d;
+    BN.cur.dishes[pos] = pickd;
+    renderParty();
+    toast('已换成「'+pickd.name+'」');
+  }catch(err){
+    partyError(err);
+  }
+}
+
+function renderParty(){
+  const bar = el('partyTabs');
+  if(bar){
+    /* 档位条始终显示：否则选中一档后就再也回不到档位选择界面 */
+    bar.innerHTML = PKGS.map(p=>`<button data-pkg="${p.n}" class="${BN.cur&&BN.cur.n===p.n?'on':''}">${p.name}</button>`).join('');
+  }
+  const box = el('partyDetail');
+  if(!box) return;
+  if(!BN.cur){
+    box.innerHTML = `<div class="pkgcards">` + PKGS.map(p=>{
+      const set = BN.sets[p.n];
+      const ck = set ? checkParty(set) : null;
+      const thumbs = set ? set.dishes.slice(0,5).map(d=>`<span class="pkgthumb">${renderVisual(d)}</span>`).join('') : '';
+      const more = set && set.dishes.length>5 ? `<span class="pkgthumb more">+${set.dishes.length-5}</span>` : '';
+      return `<div class="pkgcard" data-pkg="${p.n}">
+        <div class="pkghd"><b>${p.name}</b><small>${p.tag}</small></div>
+        <div class="pkgrow">${thumbs}${more}</div>
+        <div class="pkgnut">${ck?`<span>热量 <b>${Math.round(ck.n.heat)}</b> kcal</span><span>蛋白 <b>${Math.round(ck.n.protein)}</b> g</span><span>荤菜 <b>${ck.c.meat}</b> 类</span>${ck.extraVeg?`<span>补位素菜 <b>${ck.extraVeg}</b></span>`:''}`:'<span>点击生成菜单</span>'}</div>
+      </div>`;    }).join('') + `</div>`;
+    return;
+  }
+  const set = BN.cur, ck = checkParty(set);
+  const head = `<div class="controls" style="margin:-4px 0 14px"><button class="primary" data-act="regen" data-n="${set.n}">🔄 换一桌（重新安排${esc(set.name)}）</button></div>`;
+  const dishes = set.dishes.map((d,i)=>dishCard(d, null, null, 'party:'+i, {fav:true})).join('');
+  box.innerHTML = head + `<section class="meal today">
+      <div class="mealhead">
+        <div><h3>${esc(set.name)} · 节假日聚会</h3><div class="meta">${set.dishes.length} 样 · ${esc(SEASONS[set.season].name)}时令 · 素 ${ck.c.veg} + 半荤半素 ${ck.c.mix} + 荤 ${ck.c.meat} + 汤 ${ck.c.soup}${ck.extraVeg?'（荤菜类别用尽，'+ck.extraVeg+' 道当季素菜补位）':''}</div></div>
+        <span class="tag today">${esc(set.name)}</span>
+      </div>
+      <div class="mealbody">${dishes}</div>
+      <div class="mealnut">
+        <span>热量 <b>${Math.round(ck.n.heat)}</b> kcal</span><span>蛋白 <b>${Math.round(ck.n.protein)}</b> g</span>
+        <span>脂肪 <b>${Math.round(ck.n.fat)}</b> g</span><span>纤维 <b>${Math.round(ck.n.fiber)}</b> g</span>
+      </div>
+    </section>
+    ${(set.wines && set.wines.length) ? `<div class="addwine"><div style="font-size:13px;font-weight:600;margin-bottom:4px">🍶 本桌下酒菜（不计入套餐菜数与体检）</div><div class="winepic">${set.wines.map(id=>{const d=findWine(id);if(!d)return '';return `<span class="wd"><span class="thumb">${renderVisual(d)}</span><span><span class="nm">${esc(d.name)}</span><br><span class="sub" style="font-size:11px;color:var(--ink3)">${esc(d.flavor||'')}</span></span><button class="fav del" data-winedel="${d.id}" title="移出本桌">✕</button></span>`;}).join('')}</div></div>` : ''}
+    <div class="addwine">
+      <button class="primary" data-addwine="1">＋ 增加 1 道下酒菜</button>
+      <button class="primary" data-addwine="2" style="margin-left:8px">＋ 增加 2 道下酒菜</button>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2>套餐体检</h2>
+      <p class="hint">逐条核对：1 素 + 1 半荤半素、其余以荤为主、当季时令、营养均衡。</p>
+      <div class="rules">${ck.rows.map(r=>`<div class="rule"><div class="rt"><span class="${r.ok?'ok':''}">${r.ok?'✔':'—'}</span>${esc(r.t)}</div><div class="rd">${esc(r.d)}</div></div>`).join('')}</div>
+    </div>`;
+}
+function selectParty(n){
+  try{
+    if(!BN.sets[n]) BN.sets[n] = buildPartyPackage(n, 20261001 + n*137);
+    BN.cur = BN.sets[n];
+    BN.cur.n = n;
+    renderParty();
+  }catch(err){
+    partyError(err);
+  }
+}
+function partyError(err){
+  const box = el('partyDetail');
+  if(box) box.innerHTML = '<div class="holiday">⚠️ 聚会套餐生成异常：'+esc(err && err.message ? err.message : String(err))+'</div>';
+  if(typeof console!=='undefined' && console.error) console.error(err);
+}
+function regenParty(){
+  const n = BN.cur ? BN.cur.n : 6;
+  try{
+    BN.sets[n] = buildPartyPackage(n, Date.now()%99991 + n*31);
+    BN.cur = BN.sets[n];
+    BN.cur.n = n;
+    renderParty();
+    toast('已重新安排'+BN.cur.name);
+  }catch(err){
+    partyError(err);
+  }
+}
+function showParty(){
+  switchView('party');
+  highlightTab('party');
+  if(!BN.cur) selectParty(6);
+}
+function showFav(){ switchView('fav'); highlightTab('fav'); renderFav(); }
+function showWine(){ switchView('wine'); highlightTab('wine'); renderWine(); }
+/* 当前正在展示的聚会菜单（供"今晚"去重参考） */
+function bnShownIds(){
+  const s = new Set();
+  if(BN.cur && BN.cur.dishes) BN.cur.dishes.forEach(d=>s.add(d.id));
+  return s;
+}
+
+function newToday(seed){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const rnd = mulberry(seed);
+  /* 去重基准 = 本周其余各天 + 上一版今晚，避免连续点击时重复出菜 */
+  const base = STATE.week.slice(1).flatMap(m=>m.dishes.map(d=>d.id));
+  const prev = STATE.today ? STATE.today.dishes.map(d=>d.id) : [];
+  /* 也避开聚会套餐里正在展示的菜，避免今晚与聚会桌撞菜 */
+  const partyIds = (typeof bnShownIds === 'function') ? [...bnShownIds()] : [];
+  const used = new Set([...base, ...prev, ...partyIds]);
+  /* 本周猪肉用量不含"今晚"自身，避免重复计数导致限次判断错误 */
+  const porkUsed = STATE.week.slice(1).flatMap(m=>m.dishes).filter(d=>d.protein==='猪').length;
+  /* 今晚与 week[0] 必须始终是同一对象：否则"换一道"会改到不可见的那一餐 */
+  STATE.week[0] = STATE.today = makeMeal(today, STATE.season, used, rnd, porkUsed, {});
+  renderToday();
+  if(typeof renderWeek === 'function') renderWeek();   /* 同步"本周"视图，避免第一张卡仍是旧菜单 */
+}
+function genWeek(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  STATE.week = makeWeek(today, STATE.season);
+  STATE.today = STATE.week[0];
+  renderWeek(); renderToday();
+  toast('已生成本周 7 天晚餐菜单');
+}
+function init(){
+  const s = SEASONS[STATE.season];
+  el('seasonBadge').innerHTML = `<i>${s.icon}</i> 当前 <b>${s.name}</b> · 羊肉${lambAllowed(STATE.season)?'可安排':'不安排'}`;
+  genWeek();
+  renderLib();
+  /* tabs */
+  el('tabs').onclick = e => {
+    const b = e.target.closest('button[data-t]'); if(!b) return;
+    [...el('tabs').children].forEach(x=>x.classList.remove('on')); b.classList.add('on');    const t = b.dataset.t;
+    switchView(t);
+    if(t==='party'){ try{ renderParty(); }catch(err){ partyError(err); } }
+    if(t==='fav'){ try{ renderFav(); }catch(err){} }
+    if(t==='wine'){ try{ renderWine(); }catch(err){} }
+  };
+  el('btnGenToday').onclick = () => { newToday(Date.now()%99991); toast('已换一桌新菜'); };
+  el('btnGenWeek').onclick = genWeek;
+  el('btnParty').onclick = showParty;
+  el('btnFav').onclick = showFav;
+  el('btnWine').onclick = showWine;
+  el('btnAddWine').onclick = addWine;
+  el('btnPickDish').onclick = openDishPicker;
+  el('btnAddDish').onclick = addDish;
+  el('btnSearchDish').onclick = searchRecipeOnline;
+  el('btnParsePaste').onclick = usePasted;
+  el('dishName').addEventListener('keydown', e => { if(e.key==='Enter') addDish(); });
+  el('wineName').addEventListener('keydown', e => { if(e.key==='Enter') addWine(); });
+  el('partyTabs').onclick = e => {
+    const b = e.target.closest('[data-pkg]'); if(!b) return;
+    selectParty(Number(b.dataset.pkg));
+  };
+  el('partyDetail').onclick = e => {
+    const ac = e.target.closest('[data-act]');
+    if(ac && ac.dataset.act==='regen'){ regenParty(); return; }
+    const rb = e.target.closest('[data-replace]');
+    if(rb){
+      const parts = String(rb.dataset.replace).split(':');
+      if(parts[0]==='party'){ replacePartyDish(Number(parts[1])); e.stopPropagation(); return; }
+      return;
+    }
+    const pc = e.target.closest('[data-pkg]');
+    if(pc){ selectParty(Number(pc.dataset.pkg)); return; }
+    const d = e.target.closest('[data-dish]');
+    if(d){ e.stopPropagation(); openDish(d.dataset.dish); }   /* 阻止冒泡，避免被 document 委托二次弹窗 */
+  };
+  document.addEventListener('click', e => {
+    /* 0) 收藏 / 删除下酒菜 / 本桌加酒菜 —— 最高优先级，且不触发卡片详情 */
+    const fb = e.target.closest && e.target.closest('[data-fav]');
+    if(fb){ e.preventDefault(); e.stopPropagation(); toggleFav(fb.dataset.fav); return; }
+    const dw = e.target.closest && e.target.closest('[data-delwine]');
+    if(dw){ e.preventDefault(); e.stopPropagation(); delWine(dw.dataset.delwine); return; }
+    const pd = e.target.closest && e.target.closest('[data-pickdish]');
+    if(pd){ e.preventDefault(); e.stopPropagation(); pickDishAsWine(pd.dataset.pickdish); return; }
+    const uf = e.target.closest && e.target.closest('[data-unfav]');
+    if(uf){ e.preventDefault(); e.stopPropagation(); toggleFav(uf.dataset.unfav); return; }
+    const dd = e.target.closest && e.target.closest('[data-dishdel]');
+    if(dd){ e.preventDefault(); e.stopPropagation(); delDish(dd.dataset.dishdel); return; }
+    const da = e.target.closest && e.target.closest('[data-dishadd]');
+    if(da){ e.preventDefault(); e.stopPropagation(); addDish(); return; }
+    const aw = e.target.closest && e.target.closest('[data-addwine]');
+    if(aw){ e.preventDefault(); e.stopPropagation(); openWinePick(Number(aw.dataset.addwine)||2); return; }
+    const wd = e.target.closest && e.target.closest('[data-winedel]');
+    if(wd){ e.preventDefault(); e.stopPropagation(); removePartyWine(wd.dataset.winedel); return; }
+    /* 1) 替换按钮：同类替换，不打开详情 */
+    const rb = e.target.closest && e.target.closest('[data-replace]');
+    if(rb){
+      e.preventDefault();
+      const parts = String(rb.dataset.replace).split(':');
+      if(parts[0]==='party') return;   /* 聚会菜单由 #partyDetail 的委托处理 */
+      e.stopPropagation();
+      replaceDish(Number(parts[0]), Number(parts[1]));
+      return;
+    }
+    /* 2) 点击卡片：查看图片与经典做法 */
+    const d = e.target.closest && e.target.closest('[data-dish]');
+    if(d){
+      openDish(d.dataset.dish,
+        d.dataset.meal!=null ? Number(d.dataset.meal) : null,
+        d.dataset.pos!=null ? Number(d.dataset.pos) : null);
+    }
+  });
+  /* 键盘可达：函数与空格=查看做法；焦点在"换一道"上时=执行替换 */
+  document.addEventListener('keydown', e => {
+    if(e.key==='Escape'){
+      closeModal();
+      if(el('modal2wine') && el('modal2wine').classList.contains('on')) closeWinePick();
+      return;
+    }
+    if(e.key!=='Enter' && e.key!==' ') return;
+    /* 输入框/文本域内不处理快捷键 */
+    if(e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA' || e.target.tagName==='SELECT')) return;
+    /* 卡片内的 ☆ / ✕ 按钮：不得被识别成卡片本身 */
+    if(e.target.closest && (e.target.closest('[data-fav]') || e.target.closest('[data-unfav]') || e.target.closest('[data-delwine]') || e.target.closest('[data-winedel]') || e.target.closest('[data-dishdel]') || e.target.closest('[data-dishadd]') || e.target.closest('[data-wineadd]'))) return;
+    /* 卡片右侧的"换一道"按钮：不得被识别成卡片本身 */
+    const rb = e.target.closest && e.target.closest('[data-replace]');
+    if(rb){
+      e.preventDefault();
+      const p = String(rb.dataset.replace).split(':');
+      if(p[0]==='party') replacePartyDish(Number(p[1]));
+      else replaceDish(Number(p[0]), Number(p[1]));
+      return;
+    }
+    const d = e.target.closest && e.target.closest('[data-dish]');
+    if(d){
+      e.preventDefault();
+      openDish(d.dataset.dish,
+        d.dataset.meal!=null ? Number(d.dataset.meal) : null,
+        d.dataset.pos!=null ? Number(d.dataset.pos) : null);
+    }
+  });
+  el('mask').onclick = e => { if(e.target.id==='mask') closeModal(); };
+}
+init();
+
+/* =========================================================================
+   PWA 元信息：外链优先（manifest.json / icon.svg / sw.js），内联兜底
+   四个文件放在一起 → 用外链；只留 index.html 一个文件 → 自动用内联版本
+   ========================================================================= */
+try{
+  var ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">'
+    + '<defs><linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">'
+    + '<stop offset="0%" stop-color="%23E08A3C"/><stop offset="100%" stop-color="%23C9552E"/>'
+    + '</linearGradient></defs>'
+    + '<rect width="512" height="512" rx="112" fill="url(%23bg)"/>'
+    + '<ellipse cx="256" cy="286" rx="168" ry="96" fill="%23FFFDF9" opacity=".95"/>'
+    + '<ellipse cx="256" cy="286" rx="168" ry="96" fill="none" stroke="%23F2E3CE" stroke-width="6"/>'
+    + '<ellipse cx="256" cy="282" rx="132" ry="72" fill="%23F7F1E6"/>'
+    + '<ellipse cx="206" cy="278" rx="52" ry="34" fill="%23EFC98F"/>'
+    + '<ellipse cx="206" cy="272" rx="34" ry="20" fill="%23F7DFB4" opacity=".85"/>'
+    + '<path d="M258 262 C286 236 344 244 356 282 C322 300 282 296 258 262 Z" fill="%237FB86A"/>'
+    + '<path d="M268 268 C296 252 336 258 344 280" fill="none" stroke="%234F8A48" stroke-width="6" opacity=".7"/>'
+    + '<circle cx="318" cy="252" r="10" fill="%235FA84E"/>'
+    + '<rect x="150" y="96" width="16" height="188" rx="8" fill="%23EFD9A8" transform="rotate(14 158 190)"/>'
+    + '<rect x="184" y="92" width="16" height="190" rx="8" fill="%23F4E3C0" transform="rotate(20 192 187)"/>'
+    + '<path d="M226 176 q-16 -26 4 -44" stroke="%23FFFDF9" stroke-width="10" fill="none" opacity=".75" stroke-linecap="round"/>'
+    + '<path d="M272 166 q-16 -26 4 -44" stroke="%23FFFDF9" stroke-width="10" fill="none" opacity=".6" stroke-linecap="round"/>'
+    + '<path d="M316 176 q-16 -26 4 -44" stroke="%23FFFDF9" stroke-width="10" fill="none" opacity=".45" stroke-linecap="round"/>'
+    + '</svg>';
+  /* 空格与 # 需转义 */
+  var ICON_URI = 'data:image/svg+xml,' + ICON_SVG.replace(/ /g, '%20').replace(/#/g, '%23');
+  var manifestInline = {
+    name:'今晚吃什么 · 家庭晚餐膳食管家',
+    short_name:'今晚吃什么',
+    description:'一家四口的晚餐膳食管家，完全离线可用。',
+    start_url:'./index.html', scope:'./', display:'standalone', orientation:'portrait',
+    background_color:'#FBF7F0', theme_color:'#C9552E', lang:'zh-CN',
+    icons:[{src:ICON_URI, sizes:'any', type:'image/svg+xml', purpose:'any maskable'}]
+  };
+  var mlInline = document.createElement('link');
+  mlInline.rel = 'manifest';
+  mlInline.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifestInline));
+
+  /* 探测同目录是否存在外部 manifest.json / icon.svg（file:// 下探测不可用 → 直接用内联） */
+  var canProbe = (typeof fetch === 'function') && location.protocol.indexOf('http') === 0;
+  var mlExternal = document.querySelector('link[rel="manifest"]');
+  if(canProbe && mlExternal){
+    fetch('./manifest.json', {method:'HEAD'}).then(function(r){
+      if(!r || !r.ok) document.head.appendChild(mlInline);
+    }).catch(function(){ document.head.appendChild(mlInline); });
+  }else if(mlExternal && mlExternal.getAttribute('href') === './manifest.json'){
+    mlExternal.setAttribute('href', mlInline.href);
+  }
+
+  var l1 = document.getElementById('appIcon'), l2 = document.getElementById('appIcon2');
+  if(canProbe && l1 && l1.getAttribute('href') === './icon.svg'){
+    fetch('./icon.svg', {method:'HEAD'}).then(function(r){
+      if(r && r.ok) return;                  /* 外部图标可用，保持引用 */
+      if(l1) l1.setAttribute('href', ICON_URI);
+      if(l2) l2.setAttribute('href', ICON_URI);
+    }).catch(function(){
+      if(l1) l1.setAttribute('href', ICON_URI);
+      if(l2) l2.setAttribute('href', ICON_URI);
+    });
+  }else if(l1){
+    if(l1.getAttribute('href') === './icon.svg') l1.setAttribute('href', ICON_URI);
+    if(l2) l2.setAttribute('href', ICON_URI);
+  }
+}catch(e){ /* PWA 元信息失败不影响应用主体 */ }
+
+/* 部署到 http(s) 服务器时注册离线缓存（file:// 打开时浏览器不支持，自动跳过） */
+if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
