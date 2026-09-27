@@ -1,7 +1,7 @@
 {
   "appId": "com.family.dinnerplanner",
   "appName": "今晚吃什么",
-  "webDir": "www",
+  "webDir": ".",
   "bundledWebRuntime": false,
   "android": {
     "allowMixedContent": false,
